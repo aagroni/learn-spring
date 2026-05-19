@@ -1,0 +1,1844 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spring Core — @Transactional</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;0,9..144,900;1,9..144,300;1,9..144,700&family=Oxanium:wght@300;400;500;600&family=Fira+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #030a07;
+        --bg2: #061210;
+        --bg3: #081a16;
+        --sf: #0c2520;
+        --sf2: #112e28;
+        --bd: #163d35;
+        --bd2: #1e5248;
+        --text: #ccf2e8;
+        --muted: #3a6b5e;
+        --mu2: #6db09a;
+        --gr: #22c55e;
+        --gr2: #16a34a;
+        --gr3: #166534;
+        --tl: #2dd4bf;
+        --tl2: #0d9488;
+        --rd: #f87171;
+        --am: #fbbf24;
+        --sky: #7dd3fc;
+        --vio: #c084fc;
+        --acc: #f0fff8;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Fraunces", serif;
+        overflow-x: hidden;
+      }
+      pre,
+      code {
+        font-family: "Fira Mono", monospace;
+      }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      /* ── NAV ── */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        height: 50px;
+        background: rgba(3, 10, 7, 0.94);
+        border-bottom: 1px solid var(--bd);
+        backdrop-filter: blur(16px);
+        display: flex;
+        align-items: center;
+        padding: 0 1.5rem;
+        gap: 0;
+      }
+      .nav-brand {
+        font-family: "Oxanium", sans-serif;
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        color: var(--gr);
+        margin-right: 1.5rem;
+        white-space: nowrap;
+      }
+      .nav-links {
+        display: flex;
+        gap: 0;
+        flex: 1;
+        overflow-x: auto;
+      }
+      .nav-link {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.06em;
+        padding: 0 0.9rem;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--muted);
+        text-decoration: none;
+        border-right: 1px solid var(--bd);
+        white-space: nowrap;
+        transition:
+          color 0.2s,
+          background 0.2s;
+        cursor: pointer;
+      }
+      .nav-link:first-child {
+        border-left: 1px solid var(--bd);
+      }
+      .nav-link:hover {
+        color: var(--text);
+        background: rgba(34, 197, 94, 0.04);
+      }
+      .nav-link.done {
+        color: var(--mu2);
+      }
+      .nav-link.done .nn {
+        background: rgba(34, 197, 94, 0.1);
+        border-color: rgba(34, 197, 94, 0.3);
+        color: var(--gr);
+      }
+      .nav-link.active {
+        color: var(--gr);
+        background: rgba(34, 197, 94, 0.05);
+      }
+      .nav-link.active .nn {
+        background: rgba(34, 197, 94, 0.15);
+        border-color: var(--gr2);
+        color: var(--gr);
+      }
+      .nn {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--sf);
+        border: 1px solid var(--bd2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        flex-shrink: 0;
+      }
+
+      /* ── HERO ── */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 8rem 5rem 5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      @media (max-width: 768px) {
+        .hero {
+          padding: 7rem 2rem 4rem;
+        }
+      }
+      .h-bg {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 60% 70% at 0% 50%,
+            rgba(22, 163, 74, 0.18) 0%,
+            transparent 65%
+          ),
+          radial-gradient(
+            ellipse 30% 30% at 90% 20%,
+            rgba(45, 212, 191, 0.08) 0%,
+            transparent 60%
+          );
+      }
+
+      /* animated circuit lines */
+      .circuits {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      .circuit {
+        position: absolute;
+        background: var(--gr3);
+        animation: cflow 6s linear infinite;
+      }
+      @keyframes cflow {
+        0% {
+          opacity: 0;
+          transform: scaleX(0);
+          transform-origin: left;
+        }
+        20% {
+          opacity: 1;
+        }
+        80% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0;
+          transform: scaleX(1);
+          transform-origin: left;
+        }
+      }
+
+      .tag {
+        font-family: "Oxanium", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.22em;
+        color: var(--tl);
+        border: 1px solid var(--bd2);
+        padding: 0.32rem 1rem;
+        border-radius: 2rem;
+        margin-bottom: 1.75rem;
+        background: rgba(45, 212, 191, 0.07);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        width: fit-content;
+        animation: fd 0.7s ease both;
+      }
+      .tag::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--gr2);
+        animation: bl 2s infinite;
+      }
+      @keyframes bl {
+        0%,
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 6px var(--gr2);
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .hero h1 {
+        font-size: clamp(3.5rem, 9vw, 8.5rem);
+        line-height: 0.95;
+        color: var(--acc);
+        position: relative;
+        animation: fd 0.85s ease 0.1s both;
+        max-width: 900px;
+      }
+      .hero h1 .sub {
+        display: block;
+        font-style: italic;
+        font-weight: 300;
+        color: var(--gr);
+        font-size: clamp(2rem, 5vw, 5rem);
+      }
+      .hero-desc {
+        font-size: 1.05rem;
+        line-height: 1.82;
+        color: var(--mu2);
+        max-width: 560px;
+        margin-top: 1.75rem;
+        animation: fd 1s ease 0.2s both;
+      }
+      .hero-desc strong {
+        color: var(--text);
+        font-style: normal;
+      }
+      .hero-tags {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        margin-top: 1.75rem;
+        animation: fd 1s ease 0.3s both;
+      }
+      .ht {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.62rem;
+        padding: 0.28rem 0.75rem;
+        border: 1px solid var(--bd2);
+        color: var(--mu2);
+        background: var(--sf);
+        border-radius: 3px;
+        letter-spacing: 0.05em;
+      }
+      .scroll-c {
+        position: absolute;
+        bottom: 2.5rem;
+        right: 3rem;
+        writing-mode: vertical-rl;
+        font-family: "Fira Mono", monospace;
+        font-size: 0.58rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .scroll-c::after {
+        content: "";
+        width: 1.5px;
+        height: 48px;
+        background: linear-gradient(to bottom, transparent, var(--gr3));
+        animation: sb 2s ease-in-out infinite;
+      }
+      @keyframes sb {
+        0%,
+        100% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.5);
+        }
+      }
+      @keyframes fd {
+        from {
+          opacity: 0;
+          transform: translateY(-13px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── LAYOUT ── */
+      .wrap {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 6rem 2rem;
+        position: relative;
+      }
+      .sl {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.63rem;
+        letter-spacing: 0.26em;
+        color: var(--gr2);
+        text-transform: uppercase;
+        margin-bottom: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .sl::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, var(--bd2), transparent);
+        max-width: 180px;
+      }
+      .st {
+        font-size: clamp(1.9rem, 3.8vw, 3rem);
+        color: var(--acc);
+        line-height: 1.12;
+        margin-bottom: 1.2rem;
+        font-weight: 700;
+      }
+      .st span {
+        color: var(--gr);
+      }
+      .st em {
+        color: var(--tl);
+        font-style: italic;
+      }
+      .prose {
+        font-size: 1rem;
+        line-height: 1.85;
+        color: var(--mu2);
+        max-width: 680px;
+      }
+      .prose strong {
+        color: var(--text);
+      }
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition:
+          opacity 0.6s ease,
+          transform 0.6s ease;
+      }
+      .reveal.vis {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--bd2),
+          transparent
+        );
+        margin: 0 2rem;
+      }
+
+      /* code */
+      .cb {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 1.4rem;
+      }
+      .cb-h {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--bd);
+        background: var(--bg3);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .dr {
+        background: #ef4444;
+      }
+      .dy {
+        background: #fbbf24;
+      }
+      .dg {
+        background: #4ade80;
+      }
+      .cb-f {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.67rem;
+        color: var(--muted);
+        margin-left: 0.35rem;
+      }
+      .cb pre {
+        padding: 1.2rem 1.35rem;
+        font-size: 0.76rem;
+        line-height: 1.85;
+        overflow-x: auto;
+      }
+      .kw {
+        color: #93c5fd;
+      }
+      .cls {
+        color: #fbbf24;
+      }
+      .fn {
+        color: #86efac;
+      }
+      .str {
+        color: #fca5a5;
+      }
+      .ann {
+        color: var(--tl);
+      }
+      .cmt {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .num {
+        color: #c084fc;
+      }
+
+      /* ── ACID GRID ── */
+      .acid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        margin-top: 2.5rem;
+      }
+      @media (max-width: 700px) {
+        .acid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+      .acid-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.4rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform 0.25s,
+          box-shadow 0.25s;
+        cursor: default;
+      }
+      .acid-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      }
+      .acid-card::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--a-color, var(--gr));
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s;
+      }
+      .acid-card:hover::after {
+        transform: scaleX(1);
+      }
+      .acid-letter {
+        font-family: "Fraunces", serif;
+        font-size: 3.5rem;
+        font-weight: 900;
+        color: var(--a-color, var(--gr));
+        line-height: 1;
+        margin-bottom: 0.6rem;
+        opacity: 0.9;
+      }
+      .acid-word {
+        font-family: "Oxanium", sans-serif;
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--acc);
+        margin-bottom: 0.5rem;
+      }
+      .acid-card p {
+        font-size: 0.82rem;
+        color: var(--mu2);
+        line-height: 1.6;
+      }
+
+      /* ── PROPAGATION TABLE ── */
+      .prop-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin-top: 2rem;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid var(--bd);
+      }
+      .prop-table th {
+        background: var(--bg3);
+        padding: 0.85rem 1.1rem;
+        font-family: "Fira Mono", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        color: var(--mu2);
+        text-transform: uppercase;
+        text-align: left;
+        border-bottom: 1px solid var(--bd);
+      }
+      .prop-table td {
+        padding: 0.8rem 1.1rem;
+        background: var(--bg2);
+        font-size: 0.84rem;
+        color: var(--mu2);
+        border-bottom: 1px solid var(--bd);
+        transition: background 0.2s;
+        vertical-align: top;
+      }
+      .prop-table tr:last-child td {
+        border-bottom: none;
+      }
+      .prop-table tr:hover td {
+        background: var(--sf);
+      }
+      .prop-table td:first-child {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--tl);
+        white-space: nowrap;
+      }
+      .prop-table td:nth-child(2) {
+        color: var(--acc);
+        font-size: 0.83rem;
+      }
+      .prop-badge {
+        display: inline-block;
+        font-family: "Fira Mono", monospace;
+        font-size: 0.6rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 3px;
+        border: 1px solid;
+        margin-left: 0.4rem;
+      }
+      .pb-default {
+        color: var(--gr);
+        border-color: rgba(34, 197, 94, 0.3);
+        background: rgba(34, 197, 94, 0.08);
+      }
+      .pb-common {
+        color: var(--tl);
+        border-color: rgba(45, 212, 191, 0.25);
+        background: rgba(45, 212, 191, 0.06);
+      }
+
+      /* ── ISOLATION ── */
+      .iso-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.2rem;
+        margin-top: 2rem;
+      }
+      @media (max-width: 650px) {
+        .iso-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .iso-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: border-color 0.25s;
+      }
+      .iso-card:hover {
+        border-color: var(--bd2);
+      }
+      .iso-head {
+        padding: 0.75rem 1.1rem;
+        border-bottom: 1px solid var(--bd);
+        font-family: "Fira Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.08em;
+      }
+      .iso-body {
+        padding: 1.1rem;
+      }
+      .iso-body p {
+        font-size: 0.84rem;
+        color: var(--mu2);
+        line-height: 1.65;
+        margin-bottom: 0.6rem;
+      }
+      .iso-problems {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+      .iso-prob {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.62rem;
+        padding: 0.2rem 0.55rem;
+        border-radius: 3px;
+        border: 1px solid;
+        background: rgba(248, 113, 113, 0.07);
+        border-color: rgba(248, 113, 113, 0.25);
+        color: var(--rd);
+      }
+      .iso-prob.fixed {
+        background: rgba(34, 197, 94, 0.07);
+        border-color: rgba(34, 197, 94, 0.22);
+        color: var(--gr);
+      }
+
+      /* ── ROLLBACK ── */
+      .rb-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.2rem;
+        margin-top: 2rem;
+      }
+      @media (max-width: 650px) {
+        .rb-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+      .rb-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.3rem;
+        transition: border-color 0.25s;
+      }
+      .rb-card:hover {
+        border-color: var(--bd2);
+      }
+      .rb-card h4 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.4rem;
+      }
+      .rb-card p {
+        font-size: 0.84rem;
+        color: var(--mu2);
+        line-height: 1.65;
+      }
+      .rb-card code {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.82em;
+        color: var(--tl);
+      }
+
+      /* ── GOTCHAS ── */
+      .gotcha-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.1rem;
+        margin-top: 2.5rem;
+      }
+      .gotcha {
+        background: var(--bg2);
+        border: 1px solid rgba(248, 113, 113, 0.2);
+        border-radius: 10px;
+        padding: 1.4rem;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.3s;
+      }
+      .gotcha:hover {
+        border-color: rgba(248, 113, 113, 0.4);
+      }
+      .gotcha::before {
+        content: "⚠";
+        position: absolute;
+        top: 0.9rem;
+        right: 1rem;
+        font-size: 1.2rem;
+        opacity: 0.2;
+      }
+      .gotcha h4 {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.76rem;
+        color: var(--rd);
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.06em;
+      }
+      .gotcha p {
+        font-size: 0.84rem;
+        color: var(--mu2);
+        line-height: 1.65;
+      }
+      .gotcha code {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.82em;
+        color: var(--tl);
+      }
+      .fix {
+        margin-top: 0.8rem;
+        padding: 0.6rem 0.9rem;
+        background: rgba(34, 197, 94, 0.05);
+        border: 1px solid rgba(34, 197, 94, 0.2);
+        border-radius: 5px;
+        font-size: 0.82rem;
+        color: var(--gr);
+        line-height: 1.6;
+      }
+      .fix::before {
+        content: "✓ Fix: ";
+        font-family: "Fira Mono", monospace;
+        font-size: 0.7rem;
+      }
+
+      /* ── TX FLOW VISUAL ── */
+      .tx-flow {
+        background: var(--bg2);
+        border: 1px solid var(--bd2);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 2.5rem;
+      }
+      .tf-head {
+        background: var(--bg3);
+        border-bottom: 1px solid var(--bd);
+        padding: 0.9rem 1.4rem;
+        font-family: "Fira Mono", monospace;
+        font-size: 0.72rem;
+        color: var(--gr);
+        letter-spacing: 0.1em;
+      }
+      .tf-body {
+        padding: 2rem;
+        position: relative;
+      }
+      .tf-row {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 1rem;
+        margin-bottom: 0.4rem;
+        align-items: start;
+      }
+      .tf-step-num {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.72rem;
+        color: var(--gr2);
+        font-weight: 700;
+        padding-top: 0.15rem;
+      }
+      .tf-step-line {
+        padding-bottom: 1.5rem;
+        border-bottom: 1px dashed var(--bd);
+      }
+      .tf-row:last-child .tf-step-line {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .tf-phase {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.2rem;
+      }
+      .tf-step-line h4 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.35rem;
+      }
+      .tf-step-line p {
+        font-size: 0.84rem;
+        color: var(--mu2);
+        line-height: 1.65;
+      }
+      .tf-step-line code {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.82em;
+        color: var(--tl);
+      }
+
+      /* ── MENTAL MODELS ── */
+      .mm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 1.1rem;
+        margin-top: 2.5rem;
+      }
+      .mm {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.4rem;
+        transition: transform 0.25s;
+      }
+      .mm:hover {
+        transform: translateY(-3px);
+      }
+      .mm-em {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 0.75rem;
+      }
+      .mm-con {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.6rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--gr2);
+        margin-bottom: 0.3rem;
+      }
+      .mm-an {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.45rem;
+        line-height: 1.3;
+      }
+      .mm p {
+        font-size: 0.83rem;
+        color: var(--mu2);
+        line-height: 1.65;
+      }
+
+      /* ── SUMMARY ── */
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.9rem;
+        margin-top: 2rem;
+      }
+      .sg {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 1.1rem;
+        transition: border-color 0.2s;
+      }
+      .sg:hover {
+        border-color: var(--bd2);
+      }
+      .sg-ann {
+        font-family: "Fira Mono", monospace;
+        font-size: 0.7rem;
+        color: var(--tl);
+        margin-bottom: 0.4rem;
+        display: block;
+      }
+      .sg h5 {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.3rem;
+      }
+      .sg p {
+        font-size: 0.79rem;
+        color: var(--mu2);
+        line-height: 1.6;
+      }
+
+      /* ── FINALE ── */
+      .finale {
+        background: var(--bg2);
+        border-top: 1px solid var(--bd);
+        padding: 5rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .finale::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 60% 50% at 50% 100%,
+          rgba(22, 163, 74, 0.1),
+          transparent
+        );
+      }
+      .finale h2 {
+        font-size: clamp(2rem, 5vw, 4rem);
+        color: var(--acc);
+        margin-bottom: 1rem;
+        position: relative;
+      }
+      .finale h2 span {
+        color: var(--gr);
+      }
+      .finale p {
+        color: var(--mu2);
+        max-width: 520px;
+        margin: 0 auto;
+        line-height: 1.8;
+        font-size: 0.95rem;
+        position: relative;
+      }
+      .next-row {
+        display: flex;
+        gap: 0.7rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+        position: relative;
+      }
+      .nc {
+        background: var(--sf);
+        border: 1px solid var(--bd2);
+        color: var(--text);
+        padding: 0.5rem 1rem;
+        border-radius: 3px;
+        font-family: "Fira Mono", monospace;
+        font-size: 0.67rem;
+        letter-spacing: 0.05em;
+        cursor: default;
+        transition: all 0.25s;
+      }
+      .nc:hover {
+        border-color: var(--gr2);
+        color: var(--gr);
+        background: rgba(34, 197, 94, 0.06);
+      }
+
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--sf2);
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <nav class="nav">
+      <div class="nav-brand">SPRING CORE</div>
+      <div class="nav-links">
+        <a class="nav-link done" href="index.html"
+          ><span class="nn">✓</span>IoC, Beans &amp; Context</a
+        >
+        <a class="nav-link done" href="spring-02-scopes-lifecycle.html"
+          ><span class="nn">✓</span>Scopes &amp; Lifecycle</a
+        >
+        <a class="nav-link done" href="spring-03-aop-proxies.html"
+          ><span class="nn">✓</span>AOP &amp; Proxies</a
+        >
+        <a class="nav-link done" href="spring-04-autowired.html"
+          ><span class="nn">✓</span>@Autowired</a
+        >
+        <a class="nav-link active" href="#"
+          ><span class="nn">5</span>@Transactional</a
+        >
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="h-bg"></div>
+      <div class="circuits" id="circuits"></div>
+
+      <div class="tag">● SPRING FRAMEWORK — LECTURE 05</div>
+      <h1>@Transactional<span class="sub">Mastered</span></h1>
+      <p class="hero-desc">
+        The annotation every backend developer uses daily — and most
+        misunderstand deeply.
+        <strong>This lecture is where silent, production bugs live.</strong>
+        Know this and you know Spring.
+      </p>
+      <div class="hero-tags">
+        <span class="ht">ACID</span><span class="ht">Propagation</span
+        ><span class="ht">Isolation</span> <span class="ht">Rollback rules</span
+        ><span class="ht">readOnly</span>
+        <span class="ht">self-invocation bug</span
+        ><span class="ht">proxy mechanics</span>
+      </div>
+      <div class="scroll-c">SCROLL</div>
+    </div>
+
+    <!-- ══ WHAT IT DOES ══ -->
+    <div class="wrap">
+      <div class="sl">01 — The Concept</div>
+      <h2 class="st reveal">What a <span>transaction</span> actually is</h2>
+      <p class="prose reveal">
+        A transaction groups multiple database operations into
+        <strong>one atomic unit</strong>. Either all of them succeed and are
+        committed to the database, or any failure causes all of them to roll
+        back — leaving the database as if nothing happened.
+        <code
+          style="
+            font-family: &quot;Fira Mono&quot;, monospace;
+            color: var(--tl);
+            font-size: 0.9em;
+          "
+          >@Transactional</code
+        >
+        tells Spring:
+        <em style="color: var(--text)">"wrap this method in a transaction."</em>
+        That's it. The AOP proxy from Lecture 03 handles all the transaction
+        mechanics around your method.
+      </p>
+
+      <!-- ACID -->
+      <h3
+        class="reveal"
+        style="
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: var(--acc);
+          margin: 2.5rem 0 0;
+        "
+      >
+        Transactions guarantee ACID properties
+      </h3>
+      <div class="acid reveal">
+        <div class="acid-card" style="--a-color: var(--gr)">
+          <div class="acid-letter">A</div>
+          <div class="acid-word">Atomic</div>
+          <p>
+            All or nothing. Either every operation commits or none do. Half-done
+            state is impossible.
+          </p>
+        </div>
+        <div class="acid-card" style="--a-color: var(--tl)">
+          <div class="acid-letter">C</div>
+          <div class="acid-word">Consistent</div>
+          <p>
+            The database moves from one valid state to another. Constraints are
+            never violated mid-transaction.
+          </p>
+        </div>
+        <div class="acid-card" style="--a-color: var(--vio)">
+          <div class="acid-letter">I</div>
+          <div class="acid-word">Isolated</div>
+          <p>
+            Concurrent transactions don't see each other's in-progress changes
+            (controlled by isolation level).
+          </p>
+        </div>
+        <div class="acid-card" style="--a-color: var(--am)">
+          <div class="acid-letter">D</div>
+          <div class="acid-word">Durable</div>
+          <p>
+            Once committed, the change survives crashes, power failures, system
+            restarts.
+          </p>
+        </div>
+      </div>
+
+      <!-- what spring does -->
+      <div class="cb reveal">
+        <div class="cb-h">
+          <div class="dot dr"></div>
+          <div class="dot dy"></div>
+          <div class="dot dg"></div>
+          <span class="cb-f"
+            >What @Transactional actually does under the hood (AOP proxy)</span
+          >
+        </div>
+        <pre><span class="cmt">// What you write:</span>
+<span class="ann">@Transactional</span>
+<span class="kw">public void</span> <span class="fn">transferMoney</span>(<span class="cls">Account</span> from, <span class="cls">Account</span> to, <span class="kw">double</span> amount) {
+    accountRepo.<span class="fn">debit</span>(from, amount);
+    accountRepo.<span class="fn">credit</span>(to, amount);
+}
+
+<span class="cmt">// What Spring's AOP proxy does around it:</span>
+<span class="kw">public void</span> <span class="fn">transferMoney</span>(...) {
+    <span class="cls">TransactionStatus</span> tx = txManager.<span class="fn">getTransaction</span>(txDef); <span class="cmt">// begin</span>
+    <span class="kw">try</span> {
+        <span class="cmt">// ↓ your actual code runs here</span>
+        accountRepo.<span class="fn">debit</span>(from, amount);
+        accountRepo.<span class="fn">credit</span>(to, amount);
+
+        txManager.<span class="fn">commit</span>(tx);       <span class="cmt">// all good → commit</span>
+    } <span class="kw">catch</span> (<span class="cls">RuntimeException</span> e) {
+        txManager.<span class="fn">rollback</span>(tx);      <span class="cmt">// anything fails → rollback</span>
+        <span class="kw">throw</span> e;
+    }
+}</pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ PROPAGATION ══ -->
+    <div class="wrap">
+      <div class="sl">02 — Propagation</div>
+      <h2 class="st reveal">
+        What happens when <span>transactional methods</span> call
+        <em>each other?</em>
+      </h2>
+      <p class="prose reveal">
+        Propagation controls what Spring does with an existing transaction when
+        a new
+        <code
+          style="
+            font-family: &quot;Fira Mono&quot;, monospace;
+            color: var(--tl);
+            font-size: 0.9em;
+          "
+          >@Transactional</code
+        >
+        method is called. Should it join the outer transaction? Create a new
+        one? Run without any? This is where most bugs hide.
+      </p>
+
+      <div style="overflow-x: auto" class="reveal">
+        <table class="prop-table">
+          <thead>
+            <tr>
+              <th>Propagation</th>
+              <th>Behavior</th>
+              <th>Common use</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                REQUIRED <span class="prop-badge pb-default">DEFAULT</span>
+              </td>
+              <td style="color: var(--acc)">
+                Join existing transaction if one exists. Create new one if none.
+              </td>
+              <td>99% of service methods. The default you want.</td>
+            </tr>
+            <tr>
+              <td>REQUIRES_NEW</td>
+              <td style="color: var(--acc)">
+                Always create a brand new transaction. Suspend any existing one.
+              </td>
+              <td>Audit logging — must commit even if outer tx rolls back.</td>
+            </tr>
+            <tr>
+              <td>SUPPORTS</td>
+              <td>
+                Run in transaction if one exists. Run without one if none.
+              </td>
+              <td>Read-only queries that are fine either way.</td>
+            </tr>
+            <tr>
+              <td>NOT_SUPPORTED</td>
+              <td>
+                Suspend any existing transaction. Always run
+                non-transactionally.
+              </td>
+              <td>Operations that must not be in a transaction.</td>
+            </tr>
+            <tr>
+              <td>MANDATORY</td>
+              <td>
+                Join existing transaction. Throw exception if none exists.
+              </td>
+              <td>
+                Methods that must only be called from within a transaction.
+              </td>
+            </tr>
+            <tr>
+              <td>NEVER</td>
+              <td>Run without transaction. Throw exception if one exists.</td>
+              <td>Operations that must never run transactionally.</td>
+            </tr>
+            <tr>
+              <td>NESTED</td>
+              <td>
+                Create a nested transaction (savepoint). Roll back only nested
+                part on failure.
+              </td>
+              <td>Partial rollback within a larger transaction.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="cb reveal">
+        <div class="cb-h">
+          <div class="dot dr"></div>
+          <div class="dot dy"></div>
+          <div class="dot dg"></div>
+          <span class="cb-f"
+            >REQUIRES_NEW in practice — audit log must always commit</span
+          >
+        </div>
+        <pre><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="cls">PaymentService</span> {
+
+    <span class="ann">@Autowired</span> <span class="kw">private</span> <span class="cls">AuditService</span> audit;
+
+    <span class="ann">@Transactional</span>  <span class="cmt">// outer transaction</span>
+    <span class="kw">public void</span> <span class="fn">processPayment</span>(<span class="cls">Payment</span> p) {
+        paymentRepo.<span class="fn">save</span>(p);
+
+        audit.<span class="fn">log</span>(p);  <span class="cmt">// REQUIRES_NEW → own transaction</span>
+        <span class="cmt">// ↑ audit.log commits independently</span>
+        <span class="cmt">// ↑ even if processPayment rolls back, audit row is saved</span>
+
+        <span class="kw">if</span> (p.isInvalid()) <span class="kw">throw new</span> <span class="cls">RuntimeException</span>(); <span class="cmt">// rolls back payment</span>
+    }
+}
+
+<span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="cls">AuditService</span> {
+
+    <span class="ann">@Transactional</span>(propagation = <span class="cls">Propagation</span>.REQUIRES_NEW)
+    <span class="kw">public void</span> <span class="fn">log</span>(<span class="cls">Payment</span> p) {
+        auditRepo.<span class="fn">save</span>(<span class="kw">new</span> <span class="cls">AuditEntry</span>(p));  <span class="cmt">// always committed</span>
+    }
+}</pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ ISOLATION ══ -->
+    <div class="wrap">
+      <div class="sl">03 — Isolation</div>
+      <h2 class="st reveal">
+        Isolation — how much do <span>concurrent transactions</span> see?
+      </h2>
+      <p class="prose reveal">
+        When two transactions run simultaneously, isolation controls how much
+        one can see of the other's in-progress changes. Higher isolation = more
+        protection but lower performance (more locking).
+      </p>
+
+      <div class="iso-grid reveal">
+        <div class="iso-card">
+          <div class="iso-head" style="color: var(--am)">
+            READ_UNCOMMITTED — dangerous
+          </div>
+          <div class="iso-body">
+            <p>
+              Can read changes that haven't been committed yet ("dirty reads").
+              Fastest, but nearly never correct.
+            </p>
+            <div class="iso-problems">
+              <span class="iso-prob">dirty reads</span>
+              <span class="iso-prob">non-repeatable reads</span>
+              <span class="iso-prob">phantom reads</span>
+            </div>
+          </div>
+        </div>
+        <div class="iso-card">
+          <div class="iso-head" style="color: var(--sky)">
+            READ_COMMITTED — common default
+          </div>
+          <div class="iso-body">
+            <p>
+              Only reads committed data. The default in most databases
+              (PostgreSQL, Oracle). Prevents dirty reads.
+            </p>
+            <div class="iso-problems">
+              <span class="iso-prob fixed">✓ no dirty reads</span>
+              <span class="iso-prob">non-repeatable reads</span>
+              <span class="iso-prob">phantom reads</span>
+            </div>
+          </div>
+        </div>
+        <div class="iso-card">
+          <div class="iso-head" style="color: var(--tl)">REPEATABLE_READ</div>
+          <div class="iso-body">
+            <p>
+              Reading the same row twice in one transaction gives the same
+              result. Prevents non-repeatable reads. Default in MySQL InnoDB.
+            </p>
+            <div class="iso-problems">
+              <span class="iso-prob fixed">✓ no dirty reads</span>
+              <span class="iso-prob fixed">✓ repeatable reads</span>
+              <span class="iso-prob">phantom reads</span>
+            </div>
+          </div>
+        </div>
+        <div class="iso-card">
+          <div class="iso-head" style="color: var(--gr)">
+            SERIALIZABLE — strongest
+          </div>
+          <div class="iso-body">
+            <p>
+              Transactions execute as if sequential. Full protection. Highest
+              isolation but slowest — uses heavy locking.
+            </p>
+            <div class="iso-problems">
+              <span class="iso-prob fixed">✓ no dirty reads</span>
+              <span class="iso-prob fixed">✓ repeatable reads</span>
+              <span class="iso-prob fixed">✓ no phantom reads</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cb reveal">
+        <div class="cb-h">
+          <div class="dot dr"></div>
+          <div class="dot dy"></div>
+          <div class="dot dg"></div>
+          <span class="cb-f">Setting isolation level</span>
+        </div>
+        <pre><span class="cmt">// Use database default (usually READ_COMMITTED)</span>
+<span class="ann">@Transactional</span>
+<span class="kw">public void</span> <span class="fn">normalOperation</span>() { ... }
+
+<span class="cmt">// Explicitly set isolation for critical financial ops</span>
+<span class="ann">@Transactional</span>(isolation = <span class="cls">Isolation</span>.SERIALIZABLE)
+<span class="kw">public void</span> <span class="fn">criticalBankTransfer</span>() { ... }
+
+<span class="cmt">// Read-only — Spring hint to database to optimize reads</span>
+<span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+<span class="kw">public</span> <span class="cls">List</span>&lt;<span class="cls">Order</span>&gt; <span class="fn">findAllOrders</span>() { ... }</pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ ROLLBACK ══ -->
+    <div class="wrap">
+      <div class="sl">04 — Rollback Rules</div>
+      <h2 class="st reveal">
+        When does Spring <span>rollback</span>? This surprises everyone.
+      </h2>
+      <p class="prose reveal">
+        This is the <strong>most misunderstood rule</strong> in Spring
+        transactions. By default, Spring only rolls back on
+        <code
+          style="
+            font-family: &quot;Fira Mono&quot;, monospace;
+            color: var(--tl);
+            font-size: 0.9em;
+          "
+          >RuntimeException</code
+        >
+        (unchecked) and
+        <code
+          style="
+            font-family: &quot;Fira Mono&quot;, monospace;
+            color: var(--tl);
+            font-size: 0.9em;
+          "
+          >Error</code
+        >. Checked exceptions do
+        <strong style="color: var(--acc)">NOT</strong> trigger rollback by
+        default.
+      </p>
+
+      <div class="rb-grid reveal">
+        <div class="rb-card">
+          <h4 style="color: var(--rd)">
+            ❌ Checked Exception — NO rollback by default
+          </h4>
+          <p>
+            If your method throws <code>IOException</code>,
+            <code>SQLException</code>, or any custom checked exception, Spring
+            will <strong style="color: var(--acc)">commit</strong> the
+            transaction unless you configure otherwise. This is a dangerous
+            default that bites everyone.
+          </p>
+          <div class="cb" style="margin-top: 0.9rem">
+            <div class="cb-h">
+              <div class="dot dr"></div>
+              <div class="dot dy"></div>
+              <div class="dot dg"></div>
+            </div>
+            <pre><span class="ann">@Transactional</span>
+<span class="kw">public void</span> <span class="fn">processFile</span>() <span class="kw">throws</span> <span class="cls">IOException</span> {
+    userRepo.<span class="fn">save</span>(user);
+    <span class="kw">throw new</span> <span class="cls">IOException</span>(<span class="str">"file missing"</span>);
+    <span class="cmt">// ⚠ user IS COMMITTED despite the exception!</span>
+}</pre>
+          </div>
+        </div>
+
+        <div class="rb-card">
+          <h4 style="color: var(--gr)">
+            ✅ Fix — declare rollback for checked exceptions
+          </h4>
+          <p>
+            Use <code>rollbackFor</code> to explicitly add checked exceptions to
+            the rollback rule. Many teams just use
+            <code>rollbackFor = Exception.class</code> as a blanket rule.
+          </p>
+          <div class="cb" style="margin-top: 0.9rem">
+            <div class="cb-h">
+              <div class="dot dr"></div>
+              <div class="dot dy"></div>
+              <div class="dot dg"></div>
+            </div>
+            <pre><span class="ann">@Transactional</span>(rollbackFor = <span class="cls">Exception</span>.class)
+<span class="kw">public void</span> <span class="fn">processFile</span>() <span class="kw">throws</span> <span class="cls">IOException</span> {
+    userRepo.<span class="fn">save</span>(user);
+    <span class="kw">throw new</span> <span class="cls">IOException</span>(<span class="str">"file missing"</span>);
+    <span class="cmt">// ✅ user is rolled back now</span>
+}
+
+<span class="cmt">// Or: rollback some, not others</span>
+<span class="ann">@Transactional</span>(
+  rollbackFor = <span class="cls">IOException</span>.class,
+  noRollbackFor = <span class="cls">FileNotFoundException</span>.class
+)</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ READONLY ══ -->
+    <div class="wrap">
+      <div class="sl">05 — readOnly</div>
+      <h2 class="st reveal">
+        <code style="font-size: 0.85em; color: var(--gr)">readOnly = true</code>
+        — always use it <span>on reads</span>
+      </h2>
+      <p class="prose reveal">
+        For any method that only reads data, mark it
+        <code
+          style="
+            font-family: &quot;Fira Mono&quot;, monospace;
+            color: var(--tl);
+            font-size: 0.9em;
+          "
+          >@Transactional(readOnly = true)</code
+        >. Spring passes this hint to the database driver and JPA, unlocking
+        several optimizations.
+      </p>
+      <div class="cb reveal">
+        <div class="cb-h">
+          <div class="dot dr"></div>
+          <div class="dot dy"></div>
+          <div class="dot dg"></div>
+          <span class="cb-f"
+            >Class-level default + method-level override pattern</span
+          >
+        </div>
+        <pre><span class="ann">@Service</span>
+<span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)  <span class="cmt">// ← default for all methods in this class</span>
+<span class="kw">public class</span> <span class="cls">ProductService</span> {
+
+    <span class="kw">public</span> <span class="cls">List</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">findAll</span>() { ... }         <span class="cmt">// readOnly=true ✅</span>
+    <span class="kw">public</span> <span class="cls">Optional</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">findById</span>(<span class="kw">long</span> id) { ... } <span class="cmt">// readOnly=true ✅</span>
+
+    <span class="ann">@Transactional</span>  <span class="cmt">// ← override: write method, readOnly=false</span>
+    <span class="kw">public</span> <span class="cls">Product</span> <span class="fn">createProduct</span>(<span class="cls">ProductDto</span> dto) { ... }
+
+    <span class="ann">@Transactional</span>
+    <span class="kw">public void</span> <span class="fn">updatePrice</span>(<span class="kw">long</span> id, <span class="kw">double</span> price) { ... }
+}
+<span class="cmt">// readOnly=true benefits:</span>
+<span class="cmt">// ① Hibernate skips dirty-checking (no need to track changes)</span>
+<span class="cmt">// ② Some DBs route reads to read replicas</span>
+<span class="cmt">// ③ Explicit intent in code — documents "this never writes"</span></pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ THE GOTCHAS ══ -->
+    <div class="wrap">
+      <div class="sl">06 — The Gotchas</div>
+      <h2 class="st reveal">
+        Silent bugs that <span>destroy production</span>
+      </h2>
+      <p class="prose reveal">
+        These are the exact mistakes that cause data corruption in production.
+        Every Spring developer eventually hits these. Hit them here instead.
+      </p>
+
+      <div class="gotcha-grid reveal">
+        <div class="gotcha">
+          <h4>Self-invocation — @Transactional ignored</h4>
+          <p>
+            Calling a <code>@Transactional</code> method from
+            <em>within the same bean</em> via
+            <code>this.method()</code> bypasses the proxy. The transaction
+            annotation is silently ignored.
+          </p>
+          <div class="fix">
+            Inject the bean into itself with <code>@Autowired</code> and call
+            through the injected reference. Or refactor to a separate bean.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>Private method — @Transactional ignored</h4>
+          <p>
+            The AOP proxy can't intercept <code>private</code> methods. Putting
+            <code>@Transactional</code> on a private method does
+            <strong style="color: var(--acc)">absolutely nothing</strong>. No
+            error, no warning — just no transaction.
+          </p>
+          <div class="fix">
+            @Transactional must be on <code>public</code> methods. If the method
+            should be private, wrap its call in a public transactional method.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>Checked exception → no rollback</h4>
+          <p>
+            As covered in rollback rules: throwing a checked exception (like
+            <code>IOException</code>) does
+            <strong style="color: var(--acc)">not</strong> roll back the
+            transaction by default. Data gets committed on exception.
+          </p>
+          <div class="fix">
+            Add <code>rollbackFor = Exception.class</code> or convert to a
+            <code>RuntimeException</code>. Be explicit about your rollback
+            rules.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>Catching exceptions inside the method</h4>
+          <p>
+            If you catch and swallow a RuntimeException inside a
+            <code>@Transactional</code> method, Spring never sees it — the
+            transaction commits even though something went wrong.
+          </p>
+          <div class="fix">
+            Either let exceptions propagate, or if you must catch, call
+            <code
+              >TransactionAspectSupport.currentTransactionStatus().setRollbackOnly()</code
+            >
+            to force rollback.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>@Transactional on @Controller</h4>
+          <p>
+            Technically works, but violates separation of concerns. Controllers
+            should delegate to services. Transaction boundaries belong in the
+            service layer, not the web layer.
+          </p>
+          <div class="fix">
+            Put <code>@Transactional</code> on your
+            <code>@Service</code> classes. Controllers handle HTTP; services
+            handle business logic and transactions.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>Long transactions holding DB locks</h4>
+          <p>
+            A transaction that does heavy computation, calls external APIs, or
+            sends emails while holding a DB connection is a performance disaster
+            — it blocks other transactions from acquiring locks.
+          </p>
+          <div class="fix">
+            Keep transactions short. Call external services outside the
+            transaction boundary. Do computation first, then open transaction
+            for the DB writes.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ EXECUTION FLOW ══ -->
+    <div class="wrap">
+      <div class="sl">07 — Full Flow</div>
+      <h2 class="st reveal">
+        What Spring does on every <span>@Transactional call</span>
+      </h2>
+      <div class="tx-flow reveal">
+        <div class="tf-head">
+          // Complete execution flow for a @Transactional(propagation=REQUIRED,
+          rollbackFor=Exception.class) method
+        </div>
+        <div class="tf-body">
+          <div class="tf-row">
+            <div class="tf-step-num">1</div>
+            <div class="tf-step-line">
+              <div class="tf-phase">proxy intercepts</div>
+              <h4>AOP proxy intercepts the method call</h4>
+              <p>
+                The TransactionInterceptor (a BeanPostProcessor from Lecture 02)
+                is the advice running @Around your method. It handles everything
+                below.
+              </p>
+            </div>
+          </div>
+          <div class="tf-row">
+            <div class="tf-step-num">2</div>
+            <div class="tf-step-line">
+              <div class="tf-phase">propagation check</div>
+              <h4>Check for existing transaction</h4>
+              <p>
+                Spring checks if a transaction already exists on the current
+                thread. Based on propagation setting, it either joins it,
+                creates a new one, or suspends it.
+              </p>
+            </div>
+          </div>
+          <div class="tf-row">
+            <div class="tf-step-num">3</div>
+            <div class="tf-step-line">
+              <div class="tf-phase">begin transaction</div>
+              <h4>Transaction opened, bound to thread</h4>
+              <p>
+                The transaction is started and bound to a
+                <code>ThreadLocal</code>. This is how Spring ensures the same DB
+                connection is used throughout — any JPA/JDBC code in this thread
+                gets the same connection.
+              </p>
+            </div>
+          </div>
+          <div class="tf-row">
+            <div class="tf-step-num">4</div>
+            <div class="tf-step-line">
+              <div class="tf-phase">your code runs</div>
+              <h4>pjp.proceed() — your method executes</h4>
+              <p>
+                Your actual business logic runs. Every <code>save()</code>,
+                <code>delete()</code>, <code>findById()</code> uses the same
+                transactional connection from the ThreadLocal.
+              </p>
+            </div>
+          </div>
+          <div class="tf-row">
+            <div class="tf-step-num">5a</div>
+            <div class="tf-step-line">
+              <div class="tf-phase">success path</div>
+              <h4>No exception → commit</h4>
+              <p>
+                All DB operations are flushed to the database as a single atomic
+                commit. Connection is released back to the pool.
+              </p>
+            </div>
+          </div>
+          <div class="tf-row">
+            <div class="tf-step-num">5b</div>
+            <div class="tf-step-line">
+              <div class="tf-phase">failure path</div>
+              <h4>Exception matches rollback rules → rollback</h4>
+              <p>
+                All DB operations are undone. The database is restored to its
+                state before step 3. Connection released. Exception re-thrown to
+                caller.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ QUICK REFERENCE ══ -->
+    <div class="wrap">
+      <div class="sl">08 — Quick Reference</div>
+      <h2 class="st reveal">
+        @Transactional <span>attribute</span> cheat sheet
+      </h2>
+      <div class="summary-grid reveal">
+        <div class="sg">
+          <span class="sg-ann">propagation</span>
+          <h5>Transaction joining</h5>
+          <p>How to behave with existing transactions. Default: REQUIRED.</p>
+        </div>
+        <div class="sg">
+          <span class="sg-ann">isolation</span>
+          <h5>Concurrency level</h5>
+          <p>
+            How much concurrent transactions see of each other. Default:
+            database default.
+          </p>
+        </div>
+        <div class="sg">
+          <span class="sg-ann">readOnly</span>
+          <h5>Read hint</h5>
+          <p>
+            Hints DB and Hibernate to optimize for reads. Use on all query
+            methods.
+          </p>
+        </div>
+        <div class="sg">
+          <span class="sg-ann">rollbackFor</span>
+          <h5>Rollback trigger</h5>
+          <p>
+            Which exception types trigger rollback. Default: RuntimeException +
+            Error only.
+          </p>
+        </div>
+        <div class="sg">
+          <span class="sg-ann">noRollbackFor</span>
+          <h5>Rollback exclusion</h5>
+          <p>
+            Exception types that should NOT trigger rollback despite matching
+            rollbackFor.
+          </p>
+        </div>
+        <div class="sg">
+          <span class="sg-ann">timeout</span>
+          <h5>Max duration</h5>
+          <p>
+            Seconds before transaction is forcibly rolled back. Guards against
+            long locks.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══ MENTAL MODELS ══ -->
+    <div class="wrap">
+      <div class="sl">09 — Mental Models</div>
+      <h2 class="st reveal">Analogies that <span>make it permanent</span></h2>
+      <div class="mm-grid reveal">
+        <div class="mm">
+          <span class="mm-em">✍️</span>
+          <div class="mm-con">Transaction</div>
+          <div class="mm-an">Signing a contract in pencil</div>
+          <p>
+            You make all your changes in pencil. Commit = sign in ink
+            permanently. Rollback = erase everything back to the original blank
+            paper.
+          </p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🏦</span>
+          <div class="mm-con">ACID / Atomicity</div>
+          <div class="mm-an">Bank transfer: debit and credit together</div>
+          <p>
+            Money leaving one account and arriving in another must be one atomic
+            action. Half-done (money leaves but doesn't arrive) is worse than
+            doing nothing.
+          </p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🧵</span>
+          <div class="mm-con">ThreadLocal binding</div>
+          <div class="mm-an">One cashier, one till</div>
+          <p>
+            Your transaction is tied to your thread like a cashier tied to their
+            till. Every operation on that thread uses the same till — no mixing
+            with other cashiers' transactions.
+          </p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🪆</span>
+          <div class="mm-con">Propagation.REQUIRED</div>
+          <div class="mm-an">Nested meetings with the same agenda</div>
+          <p>
+            If you're called into a meeting already in progress, you join it —
+            you don't start a separate meeting. All decisions are made together;
+            one cancellation cancels all.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINALE -->
+    <div class="finale">
+      <h2 class="reveal">You now write <span>production-grade</span> Spring</h2>
+      <p class="reveal">
+        Five lectures in, you understand the entire foundation: IoC, Beans,
+        Scopes, Lifecycle, AOP, Proxies, Dependency Resolution, and
+        Transactions. Everything in Spring Boot is built on exactly this. You're
+        ready for the web layer.
+      </p>
+      <div class="next-row reveal">
+        <span class="nc">→ Lecture 06: Spring MVC & DispatcherServlet</span>
+        <span class="nc">→ Lecture 07: Spring Data JPA</span>
+        <span class="nc">→ Lecture 08: Spring Security</span>
+      </div>
+    </div>
+
+    <script>
+      // circuits
+      const c = document.getElementById("circuits");
+      for (let i = 0; i < 12; i++) {
+        const el = document.createElement("div");
+        el.className = "circuit";
+        const horiz = Math.random() > 0.5;
+        el.style.cssText = `
+    ${
+      horiz
+        ? `width:${60 + Math.random() * 200}px;height:1px;top:${Math.random() * 100}%;left:${Math.random() * 80}%`
+        : `height:${60 + Math.random() * 150}px;width:1px;left:${Math.random() * 100}%;top:${Math.random() * 70}%`
+    };
+    animation-delay:${-Math.random() * 6}s;
+    animation-duration:${4 + Math.random() * 5}s;
+    opacity:.4;
+  `;
+        c.appendChild(el);
+      }
+
+      const obs = new IntersectionObserver(
+        (e) => {
+          e.forEach((x) => {
+            if (x.isIntersecting) x.target.classList.add("vis");
+          });
+        },
+        { threshold: 0.08 },
+      );
+      document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
+    </script>
+  </body>
+</html>

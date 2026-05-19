@@ -1,0 +1,2222 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spring Core — AOP & Proxies</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Fira+Code:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #0c0a00;
+        --bg2: #130f00;
+        --bg3: #1a1500;
+        --sf: #201900;
+        --sf2: #2a2200;
+        --bd: #332900;
+        --bd2: #453800;
+        --text: #f5e6c8;
+        --muted: #7a6840;
+        --muted2: #b09060;
+        --gold: #f5c842;
+        --gold2: #d4a520;
+        --gold3: #a07810;
+        --amber: #fb923c;
+        --red: #ef4444;
+        --green: #4ade80;
+        --teal: #2dd4bf;
+        --slate: #94a3b8;
+        --acc: #fffbf0;
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Crimson Pro", serif;
+        overflow-x: hidden;
+        font-size: 18px;
+      }
+      pre,
+      code {
+        font-family: "Fira Code", monospace;
+      }
+      /* noise */
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9999;
+      }
+      /* ══ SHARED NAV ══ */
+      .spring-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        height: 52px;
+        background: rgba(4, 7, 4, 0.92);
+        border-bottom: 1px solid rgba(52, 211, 153, 0.12);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        display: flex;
+        align-items: center;
+        padding: 0 1.25rem;
+        gap: 0;
+        font-family: "JetBrains Mono", "Fira Mono", monospace;
+      }
+      .spring-nav-brand {
+        font-size: 0.68rem;
+        letter-spacing: 0.22em;
+        color: #34d399;
+        margin-right: 1.5rem;
+        white-space: nowrap;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .spring-nav-links {
+        display: flex;
+        gap: 0;
+        flex: 1;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .spring-nav-links::-webkit-scrollbar {
+        display: none;
+      }
+      .spring-nav-link {
+        font-size: 0.6rem;
+        letter-spacing: 0.06em;
+        padding: 0 0.9rem;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #3a5a4a;
+        text-decoration: none;
+        border-right: 1px solid rgba(52, 211, 153, 0.08);
+        white-space: nowrap;
+        transition:
+          color 0.2s,
+          background 0.2s;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .spring-nav-link:first-child {
+        border-left: 1px solid rgba(52, 211, 153, 0.08);
+      }
+      .spring-nav-link:hover {
+        color: #d1fae5;
+        background: rgba(52, 211, 153, 0.04);
+      }
+      .spring-nav-link.sn-done {
+        color: #5a8f72;
+      }
+      .spring-nav-link.sn-done .sn-num {
+        background: rgba(52, 211, 153, 0.1);
+        border-color: rgba(52, 211, 153, 0.28);
+        color: #34d399;
+      }
+      .spring-nav-link.sn-active {
+        color: #6ee7b7;
+        background: rgba(52, 211, 153, 0.05);
+      }
+      .spring-nav-link.sn-active .sn-num {
+        background: rgba(110, 231, 183, 0.15);
+        border-color: rgba(110, 231, 183, 0.4);
+        color: #6ee7b7;
+      }
+      .sn-num {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        flex-shrink: 0;
+      }
+      /* push hero content down so nav doesnt overlap */
+      .hero,
+      .hero-wrapper {
+        padding-top: 5.5rem !important;
+      }
+      /* ── NAV BAR ── */
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: rgba(12, 10, 0, 0.92);
+        border-bottom: 1px solid var(--bd);
+        backdrop-filter: blur(12px);
+        padding: 0 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0;
+        height: 52px;
+      }
+      .nav-brand {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.1rem;
+        letter-spacing: 0.12em;
+        color: var(--gold);
+        margin-right: 2rem;
+        white-space: nowrap;
+      }
+      .nav-links {
+        display: flex;
+        gap: 0;
+        flex: 1;
+        overflow-x: auto;
+      }
+      .nav-link {
+        font-family: "Fira Code", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.08em;
+        padding: 0 1.1rem;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+        text-decoration: none;
+        border-right: 1px solid var(--bd);
+        transition:
+          color 0.2s,
+          background 0.2s;
+        white-space: nowrap;
+        cursor: pointer;
+      }
+      .nav-link:first-child {
+        border-left: 1px solid var(--bd);
+      }
+      .nav-link:hover {
+        color: var(--gold);
+        background: rgba(245, 200, 66, 0.04);
+      }
+      .nav-link.active {
+        color: var(--gold);
+        background: rgba(245, 200, 66, 0.06);
+      }
+      .nav-num {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: var(--sf2);
+        border: 1px solid var(--bd2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+        color: var(--muted2);
+      }
+      .nav-link.active .nav-num {
+        background: rgba(245, 200, 66, 0.15);
+        border-color: var(--gold3);
+        color: var(--gold);
+      }
+      .nav-link.done .nav-num {
+        background: rgba(74, 222, 128, 0.1);
+        border-color: rgba(74, 222, 128, 0.3);
+        color: var(--green);
+      }
+      .nav-link.done {
+        color: var(--muted2);
+      }
+
+      /* ── HERO ── */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 8rem 6rem 5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      @media (max-width: 768px) {
+        .hero {
+          padding: 7rem 2rem 4rem;
+        }
+      }
+
+      /* diagonal grid */
+      .hero-grid {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(245, 200, 66, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(245, 200, 66, 0.04) 1px, transparent 1px);
+        background-size: 80px 80px;
+        transform: skewY(-4deg) scale(1.1);
+        transform-origin: top left;
+      }
+      .hero-glow {
+        position: absolute;
+        width: 700px;
+        height: 700px;
+        background: radial-gradient(
+          circle,
+          rgba(245, 200, 66, 0.08) 0%,
+          transparent 70%
+        );
+        top: -200px;
+        right: -200px;
+        pointer-events: none;
+        animation: pulse 8s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.8;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 1;
+        }
+      }
+
+      .hero-eyebrow {
+        font-family: "Fira Code", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.3em;
+        color: var(--gold2);
+        text-transform: uppercase;
+        margin-bottom: 1.5rem;
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .hero-eyebrow::before {
+        content: "";
+        width: 30px;
+        height: 1px;
+        background: var(--gold2);
+      }
+      .hero h1 {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(5rem, 14vw, 13rem);
+        line-height: 0.9;
+        letter-spacing: 0.02em;
+        color: var(--acc);
+        position: relative;
+        animation: fd 0.8s ease both;
+      }
+      .hero h1 .word2 {
+        color: var(--gold);
+        -webkit-text-stroke: 2px var(--gold);
+        color: transparent;
+        display: block;
+      }
+      .hero-desc {
+        font-size: 1.15rem;
+        font-style: italic;
+        color: var(--muted2);
+        max-width: 520px;
+        margin-top: 2rem;
+        line-height: 1.75;
+        animation: fd 1s ease 0.2s both;
+        position: relative;
+      }
+      .hero-desc strong {
+        color: var(--text);
+        font-style: normal;
+      }
+
+      .hero-tags {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+        position: relative;
+        animation: fd 1s ease 0.35s both;
+      }
+      .htag {
+        font-family: "Fira Code", monospace;
+        font-size: 0.65rem;
+        padding: 0.3rem 0.8rem;
+        border: 1px solid var(--bd2);
+        color: var(--muted2);
+        background: var(--sf);
+        border-radius: 3px;
+        letter-spacing: 0.06em;
+      }
+
+      .scroll-hint {
+        position: absolute;
+        bottom: 2.5rem;
+        right: 3rem;
+        font-family: "Fira Code", monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        writing-mode: vertical-rl;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .scroll-hint::before {
+        content: "";
+        width: 1px;
+        height: 48px;
+        background: linear-gradient(to bottom, transparent, var(--gold3));
+        animation: sb 2s ease-in-out infinite;
+      }
+      @keyframes sb {
+        0%,
+        100% {
+          transform: scaleY(1);
+        }
+        50% {
+          transform: scaleY(0.5);
+        }
+      }
+      @keyframes fd {
+        from {
+          opacity: 0;
+          transform: translateY(-12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* ── LAYOUT ── */
+      .wrap {
+        max-width: 1050px;
+        margin: 0 auto;
+        padding: 6rem 2rem;
+        position: relative;
+      }
+      .sec-label {
+        font-family: "Fira Code", monospace;
+        font-size: 0.66rem;
+        letter-spacing: 0.28em;
+        color: var(--gold3);
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+      }
+      .sec-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, var(--bd2), transparent);
+        max-width: 180px;
+      }
+      .sec-title {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        color: var(--acc);
+        line-height: 1;
+        letter-spacing: 0.04em;
+        margin-bottom: 1.25rem;
+      }
+      .sec-title span {
+        color: var(--gold);
+      }
+      .sec-title em {
+        color: var(--amber);
+        font-style: italic;
+        font-family: "Crimson Pro", serif;
+      }
+      .prose {
+        font-size: 1rem;
+        line-height: 1.85;
+        color: var(--muted2);
+        max-width: 680px;
+      }
+      .prose strong {
+        color: var(--text);
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(22px);
+        transition:
+          opacity 0.6s ease,
+          transform 0.6s ease;
+      }
+      .reveal.vis {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--bd2),
+          transparent
+        );
+        margin: 0 2rem;
+      }
+
+      /* ── CODE BLOCKS ── */
+      .cb {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-top: 1.5rem;
+      }
+      .cb-h {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1rem;
+        border-bottom: 1px solid var(--bd);
+        background: var(--bg3);
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .dr {
+        background: #ef4444;
+      }
+      .dy {
+        background: #fbbf24;
+      }
+      .dg {
+        background: #4ade80;
+      }
+      .cb-f {
+        font-family: "Fira Code", monospace;
+        font-size: 0.68rem;
+        color: var(--muted);
+        margin-left: 0.4rem;
+      }
+      .cb pre {
+        padding: 1.25rem 1.4rem;
+        font-size: 0.77rem;
+        line-height: 1.85;
+        overflow-x: auto;
+      }
+      .kw {
+        color: #93c5fd;
+      }
+      .cls {
+        color: #fbbf24;
+      }
+      .fn {
+        color: #86efac;
+      }
+      .str {
+        color: #fca5a5;
+      }
+      .ann {
+        color: var(--teal);
+      }
+      .cmt {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .num {
+        color: #c084fc;
+      }
+      .ret {
+        color: var(--gold);
+      }
+
+      /* ── PROBLEM CARDS ── */
+      .cross-cut {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 2.5rem;
+      }
+      @media (max-width: 650px) {
+        .cross-cut {
+          grid-template-columns: 1fr;
+        }
+      }
+      .cc-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.3s;
+      }
+      .cc-card:hover {
+        border-color: var(--bd2);
+      }
+      .cc-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--gold3),
+          transparent
+        );
+      }
+      .cc-title {
+        font-family: "Fira Code", monospace;
+        font-size: 0.72rem;
+        color: var(--gold);
+        letter-spacing: 0.1em;
+        margin-bottom: 0.75rem;
+      }
+      .cc-card p {
+        font-size: 0.88rem;
+        color: var(--muted2);
+        line-height: 1.7;
+      }
+
+      /* ── THE BIG PROXY VISUAL ── */
+      .proxy-visual {
+        margin-top: 3rem;
+        background: var(--bg2);
+        border: 1px solid var(--bd2);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .pv-head {
+        background: var(--bg3);
+        border-bottom: 1px solid var(--bd);
+        padding: 1rem 1.5rem;
+        font-family: "Fira Code", monospace;
+        font-size: 0.72rem;
+        color: var(--gold2);
+        letter-spacing: 0.1em;
+      }
+      .pv-body {
+        padding: 2rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0;
+      }
+      .pv-row {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .pv-box {
+        background: var(--sf);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.1rem 1.4rem;
+        text-align: center;
+        min-width: 150px;
+        transition: all 0.3s;
+        cursor: default;
+      }
+      .pv-box:hover {
+        border-color: var(--bd2);
+      }
+      .pv-box-label {
+        font-family: "Fira Code", monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+      .pv-box-name {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.4rem;
+        letter-spacing: 0.06em;
+        color: var(--acc);
+      }
+      .pv-box.proxy {
+        background: rgba(245, 200, 66, 0.06);
+        border-color: var(--gold3);
+        position: relative;
+      }
+      .pv-box.proxy .pv-box-name {
+        color: var(--gold);
+      }
+      .pv-box.proxy::after {
+        content: "PROXY";
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Fira Code", monospace;
+        font-size: 0.55rem;
+        background: var(--gold3);
+        color: var(--bg);
+        padding: 0.1rem 0.45rem;
+        border-radius: 2px;
+        letter-spacing: 0.15em;
+      }
+      .pv-arrow {
+        font-size: 1.5rem;
+        color: var(--gold2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+      }
+      .pv-arrow span {
+        font-family: "Fira Code", monospace;
+        font-size: 0.58rem;
+        color: var(--muted);
+        letter-spacing: 0.1em;
+      }
+      .pv-interceptors {
+        margin-top: 1.5rem;
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .pv-int {
+        font-family: "Fira Code", monospace;
+        font-size: 0.68rem;
+        padding: 0.4rem 0.9rem;
+        border-radius: 4px;
+        border: 1px solid;
+        transition: all 0.25s;
+        cursor: default;
+      }
+      .pv-int:hover {
+        transform: scale(1.04);
+      }
+      .int-log {
+        color: #a78bfa;
+        border-color: rgba(167, 139, 250, 0.3);
+        background: rgba(167, 139, 250, 0.06);
+      }
+      .int-tx {
+        color: var(--teal);
+        border-color: rgba(45, 212, 191, 0.3);
+        background: rgba(45, 212, 191, 0.06);
+      }
+      .int-sec {
+        color: var(--amber);
+        border-color: rgba(251, 146, 60, 0.3);
+        background: rgba(251, 146, 60, 0.06);
+      }
+      .int-cache {
+        color: var(--green);
+        border-color: rgba(74, 222, 128, 0.3);
+        background: rgba(74, 222, 128, 0.06);
+      }
+      .int-perf {
+        color: var(--gold);
+        border-color: rgba(245, 200, 66, 0.3);
+        background: rgba(245, 200, 66, 0.06);
+      }
+      .pv-note {
+        margin-top: 1.5rem;
+        font-family: "Fira Code", monospace;
+        font-size: 0.7rem;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.7;
+        padding: 0 1rem;
+      }
+
+      /* ── TERMS GRID ── */
+      .terms-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.1rem;
+        margin-top: 2.5rem;
+      }
+      .term-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.4rem;
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform 0.25s,
+          box-shadow 0.25s;
+        cursor: default;
+      }
+      .term-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+      }
+      .term-card::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: var(--t-color, var(--gold));
+      }
+      .term-word {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.5rem;
+        letter-spacing: 0.06em;
+        color: var(--t-color, var(--gold));
+        margin-bottom: 0.3rem;
+      }
+      .term-card h4 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--acc);
+        margin-bottom: 0.4rem;
+      }
+      .term-card p {
+        font-size: 0.84rem;
+        color: var(--muted2);
+        line-height: 1.65;
+      }
+      .term-card code {
+        font-family: "Fira Code", monospace;
+        font-size: 0.78em;
+        color: var(--teal);
+        background: var(--sf);
+        padding: 0.05rem 0.35rem;
+        border-radius: 3px;
+      }
+
+      /* ── ADVICE TYPES ── */
+      .advice-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 2.5rem;
+        flex-wrap: wrap;
+        border-bottom: 1px solid var(--bd2);
+        padding-bottom: 0;
+      }
+      .adv-tab {
+        font-family: "Fira Code", monospace;
+        font-size: 0.7rem;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 6px 6px 0 0;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.06em;
+        background: transparent;
+      }
+      .adv-tab:hover {
+        color: var(--text);
+      }
+      .adv-tab.active {
+        background: var(--bg2);
+        border-color: var(--bd2);
+        color: var(--gold);
+        margin-bottom: -1px;
+        border-bottom: 1px solid var(--bg2);
+      }
+      .adv-panel {
+        background: var(--bg2);
+        border: 1px solid var(--bd2);
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        display: none;
+      }
+      .adv-panel.active {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+      @media (max-width: 650px) {
+        .adv-panel.active {
+          grid-template-columns: 1fr;
+        }
+      }
+      .adv-desc {
+        padding: 1.5rem;
+        border-right: 1px solid var(--bd);
+      }
+      @media (max-width: 650px) {
+        .adv-desc {
+          border-right: none;
+          border-bottom: 1px solid var(--bd);
+        }
+      }
+      .adv-desc h4 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.5rem;
+      }
+      .adv-desc p {
+        font-size: 0.86rem;
+        color: var(--muted2);
+        line-height: 1.7;
+        margin-bottom: 1rem;
+      }
+      .adv-when {
+        font-family: "Fira Code", monospace;
+        font-size: 0.68rem;
+        color: var(--gold2);
+        background: rgba(245, 200, 66, 0.06);
+        border: 1px solid rgba(245, 200, 66, 0.15);
+        padding: 0.5rem 0.8rem;
+        border-radius: 5px;
+        line-height: 1.6;
+      }
+      .adv-code pre {
+        padding: 1.25rem 1.4rem;
+        font-size: 0.76rem;
+        line-height: 1.8;
+        overflow-x: auto;
+      }
+
+      /* ── EXECUTION FLOW ── */
+      .exec-flow {
+        margin-top: 2.5rem;
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .ef-head {
+        background: var(--bg3);
+        border-bottom: 1px solid var(--bd);
+        padding: 0.9rem 1.4rem;
+        font-family: "Fira Code", monospace;
+        font-size: 0.72rem;
+        color: var(--gold2);
+        letter-spacing: 0.1em;
+      }
+      .ef-body {
+        padding: 1.75rem;
+      }
+      .ef-row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0 1.5rem;
+        margin-bottom: 0.5rem;
+      }
+      .ef-num {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 2rem;
+        color: var(--gold3);
+        line-height: 1;
+        min-width: 32px;
+        text-align: center;
+      }
+      .ef-content {
+        padding-top: 0.3rem;
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--bd);
+      }
+      .ef-row:last-child .ef-content {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .ef-phase {
+        font-family: "Fira Code", monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin-bottom: 0.2rem;
+      }
+      .ef-content h4 {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.35rem;
+      }
+      .ef-content p {
+        font-size: 0.84rem;
+        color: var(--muted2);
+        line-height: 1.65;
+      }
+
+      /* ── GOTCHAS ── */
+      .gotcha-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.1rem;
+        margin-top: 2.5rem;
+      }
+      .gotcha {
+        background: var(--bg2);
+        border-radius: 10px;
+        padding: 1.4rem;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        position: relative;
+        overflow: hidden;
+        transition: border-color 0.3s;
+      }
+      .gotcha:hover {
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+      .gotcha::before {
+        content: "⚠";
+        position: absolute;
+        top: 0.9rem;
+        right: 1rem;
+        font-size: 1.2rem;
+        opacity: 0.25;
+      }
+      .gotcha h4 {
+        font-family: "Fira Code", monospace;
+        font-size: 0.8rem;
+        color: var(--red);
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.06em;
+      }
+      .gotcha p {
+        font-size: 0.85rem;
+        color: var(--muted2);
+        line-height: 1.65;
+      }
+      .gotcha code {
+        font-family: "Fira Code", monospace;
+        font-size: 0.82em;
+        color: var(--teal);
+      }
+      .fix {
+        margin-top: 0.8rem;
+        padding: 0.6rem 0.9rem;
+        background: rgba(74, 222, 128, 0.05);
+        border: 1px solid rgba(74, 222, 128, 0.2);
+        border-radius: 5px;
+        font-size: 0.82rem;
+        color: var(--green);
+        line-height: 1.6;
+      }
+      .fix::before {
+        content: "✓ Fix: ";
+        font-family: "Fira Code", monospace;
+        font-size: 0.7rem;
+      }
+
+      /* ── CHEAT SHEET ── */
+      .cheat {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 0.9rem;
+        margin-top: 2.5rem;
+      }
+      .cheat-item {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 1.1rem;
+        transition: border-color 0.2s;
+      }
+      .cheat-item:hover {
+        border-color: var(--bd2);
+      }
+      .cheat-ann {
+        font-family: "Fira Code", monospace;
+        font-size: 0.73rem;
+        color: var(--teal);
+        margin-bottom: 0.4rem;
+        display: block;
+      }
+      .cheat-item h5 {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: 0.3rem;
+      }
+      .cheat-item p {
+        font-size: 0.8rem;
+        color: var(--muted2);
+        line-height: 1.6;
+      }
+
+      /* ── MENTAL MODELS ── */
+      .mm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1.2rem;
+        margin-top: 2.5rem;
+      }
+      .mm {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.5rem;
+        transition: transform 0.3s;
+        cursor: default;
+      }
+      .mm:hover {
+        transform: translateY(-3px);
+      }
+      .mm-em {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 0.8rem;
+        filter: grayscale(10%);
+      }
+      .mm-concept {
+        font-family: "Fira Code", monospace;
+        font-size: 0.62rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--gold3);
+        margin-bottom: 0.3rem;
+      }
+      .mm-analogy {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 1.35rem;
+        letter-spacing: 0.04em;
+        color: var(--acc);
+        margin-bottom: 0.5rem;
+      }
+      .mm p {
+        font-size: 0.85rem;
+        color: var(--muted2);
+        line-height: 1.65;
+      }
+
+      /* ── FINALE ── */
+      .finale {
+        background: var(--bg2);
+        border-top: 1px solid var(--bd);
+        padding: 5rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .finale::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 60% 50% at 50% 100%,
+          rgba(245, 200, 66, 0.08),
+          transparent
+        );
+      }
+      .finale h2 {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: clamp(2.5rem, 6vw, 5rem);
+        color: var(--acc);
+        letter-spacing: 0.06em;
+        margin-bottom: 1rem;
+        position: relative;
+      }
+      .finale h2 span {
+        color: var(--gold);
+      }
+      .finale p {
+        color: var(--muted2);
+        max-width: 540px;
+        margin: 0 auto;
+        line-height: 1.8;
+        font-size: 0.95rem;
+        position: relative;
+      }
+      .next-row {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+        position: relative;
+      }
+      .nc {
+        background: var(--sf);
+        border: 1px solid var(--bd2);
+        color: var(--text);
+        padding: 0.55rem 1.1rem;
+        border-radius: 3px;
+        font-family: "Fira Code", monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.06em;
+        cursor: default;
+        transition: all 0.25s;
+      }
+      .nc:hover {
+        border-color: var(--gold3);
+        color: var(--gold);
+        background: rgba(245, 200, 66, 0.05);
+      }
+
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--sf2);
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ═══════ NAVIGATION ═══════ -->
+    <nav class="spring-nav">
+      <div class="spring-nav-brand">SPRING CORE</div>
+      <div class="spring-nav-links">
+        <a class="spring-nav-link sn-done" href="index.html"
+          ><span class="sn-num">✓</span>IoC, Beans &amp; Context</a
+        >
+        <a
+          class="spring-nav-link sn-done"
+          href="spring-02-scopes-lifecycle.html"
+          ><span class="sn-num">✓</span>Scopes &amp; Lifecycle</a
+        >
+        <a class="spring-nav-link sn-active" href="spring-03-aop-proxies.html"
+          ><span class="sn-num">3</span>AOP &amp; Proxies</a
+        >
+        <a class="spring-nav-link" href="spring-04-autowired.html"
+          ><span class="sn-num">4</span>@Autowired</a
+        >
+        <a class="spring-nav-link" href="spring-05-transactions.html"
+          ><span class="sn-num">5</span>@Transactional</a
+        >
+      </div>
+    </nav>
+
+    <!-- ═══════ HERO ═══════ -->
+    <div class="hero">
+      <div class="hero-grid"></div>
+      <div class="hero-glow"></div>
+
+      <div class="hero-eyebrow">SPRING FRAMEWORK — LECTURE 03</div>
+
+      <h1>
+        AOP
+        <span class="word2">&amp; Proxies</span>
+      </h1>
+
+      <p class="hero-desc">
+        <strong
+          >Every time you write @Transactional or @PreAuthorize, AOP is the
+          engine underneath.</strong
+        >
+        Not magic — a proxy wrapping your bean, intercepting every method call.
+        Once you see it, Spring becomes completely transparent.
+      </p>
+
+      <div class="hero-tags">
+        <span class="htag">Aspect</span>
+        <span class="htag">Pointcut</span>
+        <span class="htag">Advice</span>
+        <span class="htag">JoinPoint</span>
+        <span class="htag">@Around</span>
+        <span class="htag">@Before</span>
+        <span class="htag">@After</span>
+        <span class="htag">CGLIB Proxy</span>
+        <span class="htag">JDK Proxy</span>
+      </div>
+
+      <div class="scroll-hint">SCROLL TO EXPLORE</div>
+    </div>
+
+    <!-- ═══════ THE PROBLEM ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">01 — The Problem</div>
+      <h2 class="sec-title reveal">
+        The <span>cross-cutting</span> concern problem
+      </h2>
+      <p class="prose reveal">
+        Imagine you need to add
+        <strong>logging, transaction handling, and security checks</strong> to
+        20 service methods. You could copy-paste those 3 concerns into every
+        method — but now your business logic is buried under infrastructure
+        noise, and changing "how we log" means touching 20 files. This is the
+        <em style="color: var(--amber)">cross-cutting concern</em> problem.
+      </p>
+
+      <div class="cross-cut reveal">
+        <div class="cc-card">
+          <div class="cc-title">❌ WITHOUT AOP — business logic polluted</div>
+          <div class="cb" style="margin-top: 0.75rem">
+            <div class="cb-h">
+              <div class="dot dr"></div>
+              <div class="dot dy"></div>
+              <div class="dot dg"></div>
+              <span class="cb-f">OrderService.java</span>
+            </div>
+            <pre><span class="kw">public</span> <span class="cls">Order</span> <span class="fn">placeOrder</span>(<span class="cls">OrderDto</span> dto) {
+  <span class="cmt">// infrastructure noise ↓</span>
+  log.<span class="fn">info</span>(<span class="str">"Entering placeOrder..."</span>);
+  <span class="kw">if</span> (!security.<span class="fn">isAuthorized</span>()) <span class="kw">throw</span>...;
+  transaction.<span class="fn">begin</span>();
+
+  <span class="cmt">// actual business logic ↓ (3 lines!)</span>
+  inventory.<span class="fn">reserve</span>(dto);
+  <span class="cls">Order</span> o = orderRepo.<span class="fn">save</span>(dto);
+
+  <span class="cmt">// infrastructure noise ↓</span>
+  transaction.<span class="fn">commit</span>();
+  log.<span class="fn">info</span>(<span class="str">"Exiting placeOrder..."</span>);
+  <span class="kw">return</span> o;
+}</pre>
+          </div>
+        </div>
+
+        <div class="cc-card">
+          <div class="cc-title">✅ WITH AOP — pure business logic</div>
+          <div class="cb" style="margin-top: 0.75rem">
+            <div class="cb-h">
+              <div class="dot dr"></div>
+              <div class="dot dy"></div>
+              <div class="dot dg"></div>
+              <span class="cb-f">OrderService.java</span>
+            </div>
+            <pre><span class="ann">@Transactional</span>      <span class="cmt">// ← AOP handles this</span>
+<span class="ann">@PreAuthorize</span>(<span class="str">"..."</span>)  <span class="cmt">// ← AOP handles this</span>
+<span class="ann">@LogExecutionTime</span>   <span class="cmt">// ← your custom AOP</span>
+<span class="kw">public</span> <span class="cls">Order</span> <span class="fn">placeOrder</span>(<span class="cls">OrderDto</span> dto) {
+  <span class="cmt">// pure business logic — nothing else</span>
+  inventory.<span class="fn">reserve</span>(dto);
+  <span class="kw">return</span> orderRepo.<span class="fn">save</span>(dto);
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ HOW IT WORKS — PROXY ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">02 — The Mechanism</div>
+      <h2 class="sec-title reveal">
+        Spring AOP works through <span>Proxies</span>
+      </h2>
+      <p class="prose reveal">
+        Spring AOP is not a compiler trick or bytecode manipulation. It is
+        beautifully simple: when you put an AOP annotation on a bean,
+        <strong
+          >Spring doesn't give you your real object back from the container. It
+          gives you a proxy</strong
+        >
+        — a generated subclass that wraps your object and intercepts every
+        method call. This is why you saw in Lecture 02 that a bean might end up
+        as
+        <code
+          style="
+            font-family: &quot;Fira Code&quot;, monospace;
+            font-size: 0.85em;
+            color: var(--teal);
+          "
+          >OrderService$$SpringCGLIB</code
+        >.
+      </p>
+
+      <div class="proxy-visual reveal">
+        <div class="pv-head">
+          // What actually happens when you call orderService.placeOrder()
+        </div>
+        <div class="pv-body">
+          <div class="pv-row">
+            <div class="pv-box">
+              <div class="pv-box-label">caller</div>
+              <div class="pv-box-name">Controller</div>
+            </div>
+            <div class="pv-arrow">→<span>calls</span></div>
+            <div class="pv-box proxy">
+              <div class="pv-box-label">what Spring injected</div>
+              <div class="pv-box-name">OrderService</div>
+              <div
+                style="
+                  font-family: &quot;Fira Code&quot;, monospace;
+                  font-size: 0.6rem;
+                  color: var(--muted);
+                  margin-top: 0.3rem;
+                "
+              >
+                $$SpringCGLIB
+              </div>
+            </div>
+            <div class="pv-arrow">→<span>delegates to</span></div>
+            <div class="pv-box">
+              <div class="pv-box-label">your real object</div>
+              <div class="pv-box-name">OrderService</div>
+              <div
+                style="
+                  font-family: &quot;Fira Code&quot;, monospace;
+                  font-size: 0.6rem;
+                  color: var(--muted);
+                  margin-top: 0.3rem;
+                "
+              >
+                your code
+              </div>
+            </div>
+          </div>
+
+          <div class="pv-interceptors">
+            <div class="pv-int int-log">📝 LoggingAspect</div>
+            <div class="pv-int int-tx">🔄 @Transactional</div>
+            <div class="pv-int int-sec">🔒 @PreAuthorize</div>
+            <div class="pv-int int-cache">⚡ @Cacheable</div>
+            <div class="pv-int int-perf">⏱ @Timed</div>
+          </div>
+
+          <div class="pv-note">
+            The proxy intercepts the call → runs all matching advice (in order)
+            → delegates to your real method → runs post-advice → returns
+            result.<br />
+            <strong style="color: var(--gold2)"
+              >Your real object never knows any of this is happening.</strong
+            >
+          </div>
+        </div>
+      </div>
+
+      <!-- Two proxy types -->
+      <div
+        style="
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1.25rem;
+          margin-top: 2rem;
+        "
+        class="reveal"
+      >
+        <div class="cc-card">
+          <div class="cc-title">JDK Dynamic Proxy</div>
+          <p style="font-size: 0.86rem; color: var(--muted2); line-height: 1.7">
+            Used when your bean
+            <strong style="color: var(--text)">implements an interface</strong>.
+            The proxy implements the same interface. Fast, built into Java, no
+            extra library needed.
+          </p>
+          <div class="cb" style="margin-top: 0.75rem">
+            <div class="cb-h">
+              <div class="dot dr"></div>
+              <div class="dot dy"></div>
+              <div class="dot dg"></div>
+            </div>
+            <pre
+              style="
+                padding: 0.9rem 1.1rem;
+                font-size: 0.74rem;
+                line-height: 1.75;
+              "
+            ><span class="cmt">// Spring creates a proxy that</span>
+<span class="cmt">// implements OrderService interface</span>
+<span class="kw">interface</span> <span class="cls">OrderService</span> { ... }
+<span class="kw">class</span> <span class="cls">OrderServiceImpl</span> <span class="kw">implements</span> <span class="cls">OrderService</span></pre>
+          </div>
+        </div>
+        <div class="cc-card">
+          <div class="cc-title">CGLIB Proxy (default in Spring Boot)</div>
+          <p style="font-size: 0.86rem; color: var(--muted2); line-height: 1.7">
+            Used when your bean
+            <strong style="color: var(--text)">has no interface</strong>. CGLIB
+            generates a subclass at runtime. Spring Boot defaults to CGLIB even
+            for interface-based beans.
+          </p>
+          <div class="cb" style="margin-top: 0.75rem">
+            <div class="cb-h">
+              <div class="dot dr"></div>
+              <div class="dot dy"></div>
+              <div class="dot dg"></div>
+            </div>
+            <pre
+              style="
+                padding: 0.9rem 1.1rem;
+                font-size: 0.74rem;
+                line-height: 1.75;
+              "
+            ><span class="cmt">// Spring generates a subclass:</span>
+<span class="kw">class</span> <span class="cls">OrderService$$CGLIB</span>
+  <span class="kw">extends</span> <span class="cls">OrderService</span> {
+  <span class="cmt">// overrides every method</span>
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ AOP TERMINOLOGY ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">03 — The Vocabulary</div>
+      <h2 class="sec-title reveal">5 words you <span>must</span> know</h2>
+      <p class="prose reveal">
+        AOP has its own vocabulary. These 5 terms map to real things in your
+        code — once they click, reading AOP configuration is effortless.
+      </p>
+
+      <div class="terms-grid reveal">
+        <div class="term-card" style="--t-color: var(--gold)">
+          <div class="term-word">Aspect</div>
+          <h4>The class that holds your cross-cutting logic</h4>
+          <p>
+            Your <code>LoggingAspect</code>, <code>SecurityAspect</code> — a
+            regular class annotated with <code>@Aspect</code> that contains all
+            the advice for one concern.
+          </p>
+        </div>
+
+        <div class="term-card" style="--t-color: var(--teal)">
+          <div class="term-word">Pointcut</div>
+          <h4>The "where" — which methods to intercept</h4>
+          <p>
+            An expression that matches method signatures.
+            <em style="color: var(--muted2)"
+              >"All methods in the service package"</em
+            >,
+            <em style="color: var(--muted2)"
+              >"any method annotated with @Transactional"</em
+            >. This is how Spring knows which calls to intercept.
+          </p>
+        </div>
+
+        <div class="term-card" style="--t-color: var(--amber)">
+          <div class="term-word">Advice</div>
+          <h4>The "what" — code that runs at the pointcut</h4>
+          <p>
+            The actual logic that executes. Could be
+            <em style="color: var(--muted2)">before</em> the method,
+            <em style="color: var(--muted2)">after</em> it,
+            <em style="color: var(--muted2)">around</em> it, or only on
+            <em style="color: var(--muted2)">exception</em>. Think of it as the
+            interceptor code itself.
+          </p>
+        </div>
+
+        <div class="term-card" style="--t-color: #a78bfa">
+          <div class="term-word">JoinPoint</div>
+          <h4>The "when" — a specific method invocation</h4>
+          <p>
+            A single, concrete moment during execution — like
+            <em style="color: var(--muted2)"
+              >"this specific call to placeOrder() right now"</em
+            >. It's the runtime object your advice receives, containing method
+            args, target object, etc.
+          </p>
+        </div>
+
+        <div class="term-card" style="--t-color: var(--red)">
+          <div class="term-word">Weaving</div>
+          <h4>The process of applying aspects</h4>
+          <p>
+            The act of connecting aspects to application objects. Spring does
+            <strong style="color: var(--text)">runtime weaving</strong> via
+            proxies (at context startup). Other AOP frameworks can weave at
+            compile time or load time.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ ADVICE TYPES ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">04 — Advice Types</div>
+      <h2 class="sec-title reveal">
+        <em>When</em> does your advice <span>run?</span>
+      </h2>
+      <p class="prose reveal">
+        There are 5 advice types — each controlling exactly when your
+        interceptor code executes relative to the target method.
+        <code
+          style="
+            font-family: &quot;Fira Code&quot;, monospace;
+            color: var(--teal);
+            font-size: 0.9em;
+          "
+          >@Around</code
+        >
+        is the most powerful and used most in practice.
+      </p>
+
+      <div class="advice-tabs" id="advTabs">
+        <button class="adv-tab active" data-tab="around">@Around</button>
+        <button class="adv-tab" data-tab="before">@Before</button>
+        <button class="adv-tab" data-tab="after">@After</button>
+        <button class="adv-tab" data-tab="returning">@AfterReturning</button>
+        <button class="adv-tab" data-tab="throwing">@AfterThrowing</button>
+      </div>
+
+      <div class="adv-panel active" id="tab-around">
+        <div class="adv-desc">
+          <h4>@Around — full control</h4>
+          <p>
+            Wraps the entire method call. You decide whether to even call the
+            real method, what arguments to pass, and what return value to give
+            back. Most powerful — used by @Transactional, @Cacheable.
+          </p>
+          <div class="adv-when">
+            USE WHEN: timing, caching, retry logic, transaction management,
+            modifying args or return value
+          </div>
+        </div>
+        <div class="adv-code">
+          <pre><span class="ann">@Aspect</span> <span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">LoggingAspect</span> {
+
+  <span class="ann">@Around</span>(<span class="str">"execution(* com.app.service.*.*(..))"</span>)
+  <span class="kw">public</span> <span class="cls">Object</span> <span class="fn">logTime</span>(<span class="cls">ProceedingJoinPoint</span> pjp)
+      <span class="kw">throws</span> <span class="cls">Throwable</span> {
+
+    <span class="kw">long</span> start = <span class="cls">System</span>.<span class="fn">currentTimeMillis</span>();
+
+    <span class="cls">Object</span> result = pjp.<span class="fn">proceed</span>(); <span class="cmt">// ← call real method</span>
+
+    <span class="kw">long</span> elapsed = <span class="cls">System</span>.<span class="fn">currentTimeMillis</span>() - start;
+    log.<span class="fn">info</span>(<span class="str">"{} took {}ms"</span>,
+      pjp.<span class="fn">getSignature</span>().<span class="fn">getName</span>(), elapsed);
+
+    <span class="kw">return</span> result;
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="adv-panel" id="tab-before">
+        <div class="adv-desc">
+          <h4>@Before — runs before the method</h4>
+          <p>
+            Executes before the target method is called. Cannot prevent the
+            method from executing (use @Around for that). Cannot modify the
+            return value.
+          </p>
+          <div class="adv-when">
+            USE WHEN: input validation, logging entry, security checks (Spring
+            Security uses @Around though)
+          </div>
+        </div>
+        <div class="adv-code">
+          <pre><span class="ann">@Aspect</span> <span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">AuditAspect</span> {
+
+  <span class="ann">@Before</span>(<span class="str">"execution(* com.app.service.*.*(..))"</span>)
+  <span class="kw">public void</span> <span class="fn">logEntry</span>(<span class="cls">JoinPoint</span> jp) {
+    <span class="cls">String</span> method = jp.<span class="fn">getSignature</span>().<span class="fn">getName</span>();
+    <span class="cls">Object</span>[] args = jp.<span class="fn">getArgs</span>();
+    log.<span class="fn">info</span>(<span class="str">"→ Entering {} with args: {}"</span>,
+      method, <span class="cls">Arrays</span>.<span class="fn">toString</span>(args));
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="adv-panel" id="tab-after">
+        <div class="adv-desc">
+          <h4>@After — runs after, always</h4>
+          <p>
+            Executes after the method finishes — whether it succeeded or threw
+            an exception. Like a finally block. Cannot access the return value.
+          </p>
+          <div class="adv-when">
+            USE WHEN: cleanup, releasing resources, logging exit regardless of
+            outcome
+          </div>
+        </div>
+        <div class="adv-code">
+          <pre><span class="ann">@Aspect</span> <span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">CleanupAspect</span> {
+
+  <span class="ann">@After</span>(<span class="str">"execution(* com.app.service.*.*(..))"</span>)
+  <span class="kw">public void</span> <span class="fn">cleanup</span>(<span class="cls">JoinPoint</span> jp) {
+    <span class="cmt">// Runs regardless of success or exception</span>
+    <span class="cmt">// like a finally block</span>
+    log.<span class="fn">debug</span>(<span class="str">"← Exiting {}"</span>,
+      jp.<span class="fn">getSignature</span>().<span class="fn">getName</span>());
+    <span class="cls">ThreadLocal</span>context.<span class="fn">clear</span>();
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="adv-panel" id="tab-returning">
+        <div class="adv-desc">
+          <h4>@AfterReturning — success only</h4>
+          <p>
+            Runs only when the method completes normally (no exception). You get
+            access to the actual return value through the
+            <code>returning</code> attribute.
+          </p>
+          <div class="adv-when">
+            USE WHEN: logging successful results, post-processing return values,
+            sending events on success
+          </div>
+        </div>
+        <div class="adv-code">
+          <pre><span class="ann">@Aspect</span> <span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">EventAspect</span> {
+
+  <span class="ann">@AfterReturning</span>(
+    pointcut = <span class="str">"execution(* com.app.service.OrderService.placeOrder(..))"</span>,
+    returning = <span class="str">"order"</span>
+  )
+  <span class="kw">public void</span> <span class="fn">onOrderPlaced</span>(<span class="cls">Order</span> order) {
+    <span class="cmt">// Only runs on success, gets the return value</span>
+    eventBus.<span class="fn">publish</span>(<span class="kw">new</span> <span class="cls">OrderPlacedEvent</span>(order));
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="adv-panel" id="tab-throwing">
+        <div class="adv-desc">
+          <h4>@AfterThrowing — exceptions only</h4>
+          <p>
+            Runs only when the method throws an exception. You get the exception
+            object. Useful for centralized error handling and monitoring — does
+            NOT suppress the exception.
+          </p>
+          <div class="adv-when">
+            USE WHEN: error logging, metrics on failures, alerting on specific
+            exceptions
+          </div>
+        </div>
+        <div class="adv-code">
+          <pre><span class="ann">@Aspect</span> <span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">ErrorTrackingAspect</span> {
+
+  <span class="ann">@AfterThrowing</span>(
+    pointcut = <span class="str">"execution(* com.app.service.*.*(..))"</span>,
+    throwing = <span class="str">"ex"</span>
+  )
+  <span class="kw">public void</span> <span class="fn">trackError</span>(<span class="cls">JoinPoint</span> jp, <span class="cls">Exception</span> ex) {
+    <span class="cmt">// Only on exception — doesn't suppress it</span>
+    metrics.<span class="fn">increment</span>(<span class="str">"errors."</span> + jp.<span class="fn">getSignature</span>().<span class="fn">getName</span>());
+    alerting.<span class="fn">notify</span>(ex);
+  }
+}</pre>
+        </div>
+      </div>
+
+      <!-- Pointcut expressions -->
+      <div class="cb reveal" style="margin-top: 2rem">
+        <div class="cb-h">
+          <div class="dot dr"></div>
+          <div class="dot dy"></div>
+          <div class="dot dg"></div>
+          <span class="cb-f"
+            >Pointcut Expression Syntax — the patterns you'll use daily</span
+          >
+        </div>
+        <pre
+          style="
+            padding: 1.25rem 1.4rem;
+            font-size: 0.77rem;
+            line-height: 1.95;
+            overflow-x: auto;
+          "
+        ><span class="cmt">// ① All methods in a package</span>
+<span class="str">"execution(* com.app.service.*.*(..))"</span>
+<span class="cmt">//  ↑return  ↑package    ↑class ↑method ↑any args</span>
+
+<span class="cmt">// ② Any method annotated with @Transactional</span>
+<span class="str">"@annotation(org.springframework.transaction.annotation.Transactional)"</span>
+
+<span class="cmt">// ③ Methods in a specific class</span>
+<span class="str">"execution(* com.app.service.OrderService.*(..))"</span>
+
+<span class="cmt">// ④ Combine with && || !</span>
+<span class="str">"execution(* com.app.service.*.*(..)) &amp;&amp; !execution(* com.app.service.*.find*(..))"</span>
+
+<span class="cmt">// ⑤ Reusable named pointcut</span>
+<span class="ann">@Pointcut</span>(<span class="str">"execution(* com.app.service.*.*(..))"</span>)
+<span class="kw">public void</span> <span class="fn">serviceLayer</span>() {} <span class="cmt">// reference as serviceLayer() in advice</span></pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ EXECUTION FLOW ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">05 — Execution Order</div>
+      <h2 class="sec-title reveal">What happens in <span>which order</span></h2>
+
+      <div class="exec-flow reveal">
+        <div class="ef-head">
+          // orderService.placeOrder(dto) — full execution trace with @Around +
+          @Before + @AfterReturning
+        </div>
+        <div class="ef-body">
+          <div class="ef-row">
+            <div class="ef-num">1</div>
+            <div class="ef-content">
+              <div class="ef-phase">proxy intercepts</div>
+              <h4>Controller calls proxy, not your real object</h4>
+              <p>
+                Spring injected a proxy. The controller has no idea. It calls
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >placeOrder()</code
+                >
+                on what looks like
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >OrderService</code
+                >
+                but is actually the CGLIB wrapper.
+              </p>
+            </div>
+          </div>
+          <div class="ef-row">
+            <div class="ef-num">2</div>
+            <div class="ef-content">
+              <div class="ef-phase">@Before advice runs</div>
+              <h4>Pre-method interceptors fire</h4>
+              <p>
+                Any
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >@Before</code
+                >
+                advice matching this pointcut runs. Logs entry, validates input,
+                etc. The real method hasn't been called yet.
+              </p>
+            </div>
+          </div>
+          <div class="ef-row">
+            <div class="ef-num">3</div>
+            <div class="ef-content">
+              <div class="ef-phase">@Around advice enters</div>
+              <h4>Around advice code runs up to pjp.proceed()</h4>
+              <p>
+                The
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >@Around</code
+                >
+                advice runs all code before the
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >pjp.proceed()</code
+                >
+                call — starting a timer, opening a transaction, checking cache.
+              </p>
+            </div>
+          </div>
+          <div class="ef-row">
+            <div class="ef-num">4</div>
+            <div class="ef-content">
+              <div class="ef-phase">your real method</div>
+              <h4>pjp.proceed() — your actual code runs</h4>
+              <p>
+                Finally, your real
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >placeOrder()</code
+                >
+                business logic executes. This is the only part you wrote —
+                everything else was woven around it.
+              </p>
+            </div>
+          </div>
+          <div class="ef-row">
+            <div class="ef-num">5</div>
+            <div class="ef-content">
+              <div class="ef-phase">@Around returns</div>
+              <h4>Around advice code after pjp.proceed()</h4>
+              <p>
+                Control returns to the @Around advice. It records elapsed time,
+                commits the transaction, stores result in cache, then returns
+                the result.
+              </p>
+            </div>
+          </div>
+          <div class="ef-row">
+            <div class="ef-num">6</div>
+            <div class="ef-content">
+              <div class="ef-phase">@AfterReturning / @After</div>
+              <h4>Post-method advice fires</h4>
+              <p>
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >@AfterReturning</code
+                >
+                (on success) or
+                <code
+                  style="
+                    font-family: &quot;Fira Code&quot;, monospace;
+                    color: var(--teal);
+                    font-size: 0.85em;
+                  "
+                  >@After</code
+                >
+                (always) runs last — publishing events, final logging, cleanup.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ GOTCHAS ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">06 — The Gotchas</div>
+      <h2 class="sec-title reveal">Where AOP <span>silently breaks</span></h2>
+      <p class="prose reveal">
+        These are the bugs that confuse even experienced Spring developers. Know
+        them now and save yourself hours of debugging.
+      </p>
+
+      <div class="gotcha-grid reveal">
+        <div class="gotcha">
+          <h4>Self-invocation doesn't work</h4>
+          <p>
+            If method A inside a bean calls method B in the <em>same</em> bean
+            with <code>this.methodB()</code>, AOP
+            <strong style="color: var(--text)">won't intercept</strong> methodB
+            — because the call never goes through the proxy.
+          </p>
+          <div class="fix">
+            Inject the bean into itself using
+            <code style="font-family: &quot;Fira Code&quot;, monospace"
+              >@Autowired</code
+            >
+            and call through it, or use ApplicationContext to get the proxy.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>Private methods are never intercepted</h4>
+          <p>
+            Proxies can only override <code>public</code> and (CGLIB)
+            <code>protected</code> methods.
+            <strong style="color: var(--text)"
+              >Private methods are invisible</strong
+            >
+            to the proxy — <code>@Transactional</code> on a private method
+            silently does nothing.
+          </p>
+          <div class="fix">
+            Always put AOP annotations on
+            <code style="font-family: &quot;Fira Code&quot;, monospace"
+              >public</code
+            >
+            methods. Spring even warns you in logs.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>final classes/methods can't be proxied</h4>
+          <p>
+            CGLIB generates a subclass. If your class or method is
+            <code>final</code>, it
+            <strong style="color: var(--text)">can't be subclassed</strong> —
+            Spring will throw an error or silently skip AOP.
+          </p>
+          <div class="fix">
+            Don't mark Spring beans as
+            <code style="font-family: &quot;Fira Code&quot;, monospace"
+              >final</code
+            >. Kotlin classes are final by default — use
+            <code style="font-family: &quot;Fira Code&quot;, monospace"
+              >open</code
+            >
+            or the Kotlin Spring plugin.
+          </div>
+        </div>
+
+        <div class="gotcha">
+          <h4>@Transactional on new Thread loses context</h4>
+          <p>
+            Transactions are bound to the current thread. If you spawn a new
+            thread inside a <code>@Transactional</code> method, the new thread
+            has <strong style="color: var(--text)">no transaction</strong> — any
+            DB calls it makes are outside the transaction.
+          </p>
+          <div class="fix">
+            Use Spring's
+            <code style="font-family: &quot;Fira Code&quot;, monospace"
+              >@Async</code
+            >
+            with proper propagation, or pass data across thread boundaries
+            explicitly.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ ANNOTATION CHEAT SHEET ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">07 — Quick Reference</div>
+      <h2 class="sec-title reveal">AOP annotations <span>cheat sheet</span></h2>
+
+      <div class="cheat reveal">
+        <div class="cheat-item">
+          <span class="cheat-ann">@Aspect</span>
+          <h5>Marks an Aspect class</h5>
+          <p>
+            Tells Spring this class contains advice. Also needs
+            <code
+              style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >@Component</code
+            >.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@Pointcut</span>
+          <h5>Reusable pointcut</h5>
+          <p>
+            Names an expression so multiple advice methods can reference it
+            without duplication.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@Around</span>
+          <h5>Full method control</h5>
+          <p>
+            Must call
+            <code
+              style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >pjp.proceed()</code
+            >
+            to invoke the real method. Most flexible.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@Before</span>
+          <h5>Pre-method</h5>
+          <p>
+            Runs before. Can't stop the method or see the return value. Simple
+            and fast.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@After</span>
+          <h5>Always after</h5>
+          <p>
+            Runs after, success or exception. Like a
+            <code
+              style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >finally</code
+            >
+            block.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@AfterReturning</span>
+          <h5>Success only</h5>
+          <p>
+            Access the return value via the
+            <code
+              style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >returning</code
+            >
+            param.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@AfterThrowing</span>
+          <h5>Exception only</h5>
+          <p>
+            Access thrown exception via the
+            <code
+              style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >throwing</code
+            >
+            param.
+          </p>
+        </div>
+        <div class="cheat-item">
+          <span class="cheat-ann">@EnableAspectJAutoProxy</span>
+          <h5>Enable AOP</h5>
+          <p>
+            Put on a
+            <code
+              style="
+                font-family: &quot;Fira Code&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >@Configuration</code
+            >
+            class. Spring Boot does this automatically.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ═══════ MENTAL MODELS ═══════ -->
+    <div class="wrap">
+      <div class="sec-label">08 — Mental Models</div>
+      <h2 class="sec-title reveal">Analogies that <span>make it real</span></h2>
+
+      <div class="mm-grid reveal">
+        <div class="mm">
+          <span class="mm-em">🕵️</span>
+          <div class="mm-concept">Proxy</div>
+          <div class="mm-analogy">A body double that runs errands first</div>
+          <p>
+            Your real celebrity is in the building, but everyone talks to the
+            body double. The double does the security check, signs NDAs, then
+            passes you through to the real person.
+          </p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🏙️</span>
+          <div class="mm-concept">Aspect / Pointcut</div>
+          <div class="mm-analogy">City-wide traffic cameras</div>
+          <p>
+            You define: "record every car that enters downtown." Every car
+            (method) matching that description gets recorded — the cars
+            themselves don't know the camera exists.
+          </p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🥪</span>
+          <div class="mm-concept">@Around</div>
+          <div class="mm-analogy">The sandwich around your filling</div>
+          <p>
+            Your real method is the filling. @Around advice is the bread on both
+            sides — you control what's on top, what's on the bottom, and whether
+            the sandwich even gets made.
+          </p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🏛️</span>
+          <div class="mm-concept">AOP in Spring</div>
+          <div class="mm-analogy">Laws that apply to every business</div>
+          <p>
+            Tax law, fire safety, labor law — they apply to every business
+            without each business writing their own compliance code.
+            @Transactional, @PreAuthorize work the same way.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════ FINALE ═══════ -->
+    <div class="finale">
+      <h2 class="reveal">The magic is just <span>a proxy</span></h2>
+      <p class="reveal">
+        Now when @Transactional silently rolls back a transaction, or
+        @PreAuthorize blocks an unauthorized call, you know exactly what's
+        happening: a CGLIB subclass intercepted that method call and ran advice
+        around it. No magic. Just objects.
+      </p>
+      <div class="next-row reveal">
+        <span class="nc">→ Lecture 04: @Autowired & Dependency Resolution</span>
+        <span class="nc">→ Lecture 05: Spring MVC (DispatcherServlet)</span>
+        <span class="nc">→ Lecture 06: Spring Data & Transactions</span>
+      </div>
+    </div>
+
+    <script>
+      // ── Reveal ──
+      const obs = new IntersectionObserver(
+        (e) => {
+          e.forEach((x) => {
+            if (x.isIntersecting) x.target.classList.add("vis");
+          });
+        },
+        { threshold: 0.08 },
+      );
+      document.querySelectorAll(".reveal").forEach((el) => obs.observe(el));
+
+      // ── Timeline ──
+      const tlObs = new IntersectionObserver(
+        (e) => {
+          e.forEach((x) => {
+            if (x.isIntersecting) {
+              document
+                .querySelectorAll(".tl-step")
+                .forEach((s, i) =>
+                  setTimeout(() => s.classList.add("vis"), i * 120),
+                );
+              tlObs.disconnect();
+            }
+          });
+        },
+        { threshold: 0.05 },
+      );
+      const tl = document.querySelector(".timeline");
+      if (tl) tlObs.observe(tl);
+
+      // ── Advice tabs ──
+      document.querySelectorAll(".adv-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll(".adv-tab")
+            .forEach((t) => t.classList.remove("active"));
+          document
+            .querySelectorAll(".adv-panel")
+            .forEach((p) => p.classList.remove("active"));
+          tab.classList.add("active");
+          document
+            .getElementById("tab-" + tab.dataset.tab)
+            .classList.add("active");
+        });
+      });
+    </script>
+  </body>
+</html>

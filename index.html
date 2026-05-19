@@ -1,0 +1,2332 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spring Core — IoC, Beans & Context</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=JetBrains+Mono:wght@300;400;600&family=Syne:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --green: #6ee7b7;
+        --green2: #34d399;
+        --green3: #059669;
+        --teal: #2dd4bf;
+        --dark: #050e0a;
+        --dark2: #0a1a12;
+        --dark3: #0f2318;
+        --surface: #112b1c;
+        --surface2: #1a3d28;
+        --border: #1f4d32;
+        --text: #d1fae5;
+        --muted: #6b9e82;
+        --accent: #f0fdf4;
+        --yellow: #fde68a;
+        --orange: #fb923c;
+        --red: #f87171;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        background: var(--dark);
+        color: var(--text);
+        font-family: "Syne", sans-serif;
+        overflow-x: hidden;
+        cursor: default;
+      }
+
+      /* ── NOISE OVERLAY ── */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0.6;
+      }
+
+      /* ── HERO ── */
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        position: relative;
+        padding: 4rem 2rem;
+        overflow: hidden;
+      }
+
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            ellipse 80% 60% at 50% 0%,
+            rgba(6, 95, 70, 0.45) 0%,
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 40% 40% at 80% 80%,
+            rgba(5, 150, 105, 0.2) 0%,
+            transparent 60%
+          ),
+          radial-gradient(
+            ellipse 30% 30% at 20% 90%,
+            rgba(45, 212, 191, 0.12) 0%,
+            transparent 60%
+          );
+      }
+      /* ══ SHARED NAV ══ */
+      .spring-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        height: 52px;
+        background: rgba(4, 7, 4, 0.92);
+        border-bottom: 1px solid rgba(52, 211, 153, 0.12);
+        backdrop-filter: blur(18px);
+        -webkit-backdrop-filter: blur(18px);
+        display: flex;
+        align-items: center;
+        padding: 0 1.25rem;
+        gap: 0;
+        font-family: "JetBrains Mono", "Fira Mono", monospace;
+      }
+      .spring-nav-brand {
+        font-size: 0.68rem;
+        letter-spacing: 0.22em;
+        color: #34d399;
+        margin-right: 1.5rem;
+        white-space: nowrap;
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .spring-nav-links {
+        display: flex;
+        gap: 0;
+        flex: 1;
+        overflow-x: auto;
+        scrollbar-width: none;
+      }
+      .spring-nav-links::-webkit-scrollbar {
+        display: none;
+      }
+      .spring-nav-link {
+        font-size: 0.6rem;
+        letter-spacing: 0.06em;
+        padding: 0 0.9rem;
+        height: 52px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: #3a5a4a;
+        text-decoration: none;
+        border-right: 1px solid rgba(52, 211, 153, 0.08);
+        white-space: nowrap;
+        transition:
+          color 0.2s,
+          background 0.2s;
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+      .spring-nav-link:first-child {
+        border-left: 1px solid rgba(52, 211, 153, 0.08);
+      }
+      .spring-nav-link:hover {
+        color: #d1fae5;
+        background: rgba(52, 211, 153, 0.04);
+      }
+      .spring-nav-link.sn-done {
+        color: #5a8f72;
+      }
+      .spring-nav-link.sn-done .sn-num {
+        background: rgba(52, 211, 153, 0.1);
+        border-color: rgba(52, 211, 153, 0.28);
+        color: #34d399;
+      }
+      .spring-nav-link.sn-active {
+        color: #6ee7b7;
+        background: rgba(52, 211, 153, 0.05);
+      }
+      .spring-nav-link.sn-active .sn-num {
+        background: rgba(110, 231, 183, 0.15);
+        border-color: rgba(110, 231, 183, 0.4);
+        color: #6ee7b7;
+      }
+      .sn-num {
+        width: 17px;
+        height: 17px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.55rem;
+        flex-shrink: 0;
+      }
+      /* push hero content down so nav doesnt overlap */
+      .hero,
+      .hero-wrapper {
+        padding-top: 5.5rem !important;
+      }
+
+      .grid-lines {
+        position: absolute;
+        inset: 0;
+        background-image:
+          linear-gradient(rgba(110, 231, 183, 0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(110, 231, 183, 0.04) 1px, transparent 1px);
+        background-size: 60px 60px;
+        animation: gridPulse 8s ease-in-out infinite;
+      }
+
+      @keyframes gridPulse {
+        0%,
+        100% {
+          opacity: 0.5;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      .hero-badge {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.2em;
+        color: var(--green2);
+        border: 1px solid var(--green3);
+        padding: 0.35rem 1rem;
+        border-radius: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        animation: fadeDown 0.8s ease both;
+        background: rgba(5, 150, 105, 0.1);
+      }
+
+      .hero-badge::before {
+        content: "";
+        position: absolute;
+        left: 0.8rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 6px;
+        height: 6px;
+        background: var(--green2);
+        border-radius: 50%;
+        animation: blink 2s ease-in-out infinite;
+      }
+
+      @keyframes blink {
+        0%,
+        100% {
+          opacity: 1;
+          box-shadow: 0 0 6px var(--green2);
+        }
+        50% {
+          opacity: 0.3;
+          box-shadow: none;
+        }
+      }
+
+      .hero h1 {
+        font-family: "DM Serif Display", serif;
+        font-size: clamp(3rem, 8vw, 7rem);
+        line-height: 1.05;
+        color: var(--accent);
+        position: relative;
+        animation: fadeDown 0.9s ease 0.1s both;
+      }
+
+      .hero h1 em {
+        font-style: italic;
+        color: var(--green2);
+        display: block;
+      }
+
+      .hero-sub {
+        font-size: clamp(0.95rem, 2vw, 1.15rem);
+        color: var(--muted);
+        max-width: 520px;
+        margin: 1.5rem auto 0;
+        line-height: 1.7;
+        animation: fadeDown 1s ease 0.2s both;
+      }
+
+      .scroll-hint {
+        position: absolute;
+        bottom: 2.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--muted);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        animation: fadeDown 1.2s ease 0.6s both;
+      }
+
+      .scroll-arrow {
+        width: 1px;
+        height: 40px;
+        background: linear-gradient(to bottom, var(--green3), transparent);
+        animation: scrollPulse 2s ease-in-out infinite;
+      }
+
+      @keyframes scrollPulse {
+        0%,
+        100% {
+          transform: scaleY(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scaleY(0.6);
+          opacity: 0.4;
+        }
+      }
+
+      /* ── SECTIONS ── */
+      section {
+        padding: 6rem 2rem;
+        max-width: 1100px;
+        margin: 0 auto;
+        position: relative;
+      }
+
+      .section-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.25em;
+        color: var(--green3);
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .section-label::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, var(--border), transparent);
+        max-width: 200px;
+      }
+
+      .section-title {
+        font-family: "DM Serif Display", serif;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        color: var(--accent);
+        line-height: 1.15;
+        margin-bottom: 1.5rem;
+      }
+
+      .section-title span {
+        color: var(--green2);
+      }
+
+      .prose {
+        font-size: 1.05rem;
+        line-height: 1.8;
+        color: #a7c9b5;
+        max-width: 680px;
+      }
+
+      /* ── PROBLEM SECTION ── */
+      .problem-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin-top: 3rem;
+      }
+
+      @media (max-width: 700px) {
+        .problem-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .code-card {
+        background: var(--dark2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .code-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--dark3);
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .dot.red {
+        background: #f87171;
+      }
+      .dot.yellow {
+        background: #fde68a;
+      }
+      .dot.green {
+        background: var(--green2);
+      }
+
+      .code-card-title {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        color: var(--muted);
+        margin-left: 0.5rem;
+      }
+
+      .code-card pre {
+        padding: 1.25rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.8rem;
+        line-height: 1.7;
+        overflow-x: auto;
+      }
+
+      .code-bad {
+        border-color: rgba(248, 113, 113, 0.3);
+      }
+      .code-good {
+        border-color: rgba(110, 231, 183, 0.3);
+      }
+
+      .code-bad .code-card-header {
+        background: rgba(248, 113, 113, 0.06);
+      }
+      .code-good .code-card-header {
+        background: rgba(110, 231, 183, 0.06);
+      }
+
+      .kw {
+        color: #93c5fd;
+      }
+      .cls {
+        color: var(--yellow);
+      }
+      .fn {
+        color: #86efac;
+      }
+      .str {
+        color: #fca5a5;
+      }
+      .str2 {
+        color: var(--green2);
+      }
+      .cmt {
+        color: var(--muted);
+        font-style: italic;
+      }
+      .ann {
+        color: var(--teal);
+      }
+
+      .badge-bad {
+        background: rgba(248, 113, 113, 0.15);
+        color: #f87171;
+        border: 1px solid rgba(248, 113, 113, 0.3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+      }
+      .badge-good {
+        background: rgba(110, 231, 183, 0.12);
+        color: var(--green2);
+        border: 1px solid rgba(110, 231, 183, 0.25);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+      }
+
+      /* ── IOC DIAGRAM ── */
+      .ioc-visual {
+        margin-top: 3.5rem;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+        gap: 2rem;
+      }
+
+      @media (max-width: 700px) {
+        .ioc-visual {
+          grid-template-columns: 1fr;
+          text-align: center;
+        }
+        .ioc-arrow {
+          transform: rotate(90deg);
+        }
+      }
+
+      .ioc-box {
+        background: var(--dark2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.75rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .ioc-box::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 50% 0%,
+          rgba(5, 150, 105, 0.12),
+          transparent 70%
+        );
+        pointer-events: none;
+      }
+
+      .ioc-box-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 0.75rem;
+      }
+
+      .ioc-box-title {
+        font-family: "DM Serif Display", serif;
+        font-size: 1.4rem;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+
+      .ioc-box p {
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+
+      .ioc-box.bad {
+        border-color: rgba(248, 113, 113, 0.25);
+      }
+      .ioc-box.good {
+        border-color: rgba(110, 231, 183, 0.25);
+      }
+
+      .ioc-arrow {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--green3);
+        font-size: 0.7rem;
+        font-family: "JetBrains Mono", monospace;
+        letter-spacing: 0.1em;
+      }
+
+      .arrow-line {
+        width: 80px;
+        height: 2px;
+        background: linear-gradient(
+          to right,
+          rgba(248, 113, 113, 0.5),
+          var(--green2)
+        );
+        position: relative;
+      }
+
+      .arrow-line::after {
+        content: "▶";
+        position: absolute;
+        right: -8px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--green2);
+        font-size: 0.8rem;
+      }
+
+      /* ── BEAN SECTION ── */
+      .bean-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1.25rem;
+        margin-top: 3rem;
+      }
+
+      @media (max-width: 700px) {
+        .bean-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .bean-card {
+        background: var(--dark2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform 0.3s ease,
+          border-color 0.3s ease,
+          box-shadow 0.3s ease;
+        cursor: default;
+      }
+
+      .bean-card:hover {
+        transform: translateY(-4px);
+        border-color: rgba(110, 231, 183, 0.4);
+        box-shadow:
+          0 16px 40px rgba(0, 0, 0, 0.4),
+          0 0 0 1px rgba(110, 231, 183, 0.1);
+      }
+
+      .bean-card::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 80% 0%,
+          rgba(5, 150, 105, 0.08),
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+
+      .bean-icon {
+        width: 42px;
+        height: 42px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .bean-card h3 {
+        font-size: 1rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.5rem;
+      }
+
+      .bean-card p {
+        font-size: 0.85rem;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .bean-tag {
+        display: inline-block;
+        margin-top: 1rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--green2);
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+      }
+
+      /* ── CONTAINER DIAGRAM ── */
+      .container-visual {
+        margin-top: 3.5rem;
+        background: var(--dark2);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+
+      .container-header {
+        background: var(--dark3);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .container-title {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--green2);
+        letter-spacing: 0.1em;
+      }
+
+      .container-body {
+        padding: 2rem;
+        display: grid;
+        grid-template-columns: 1fr 2px 2fr;
+        gap: 2rem;
+        align-items: start;
+      }
+
+      @media (max-width: 700px) {
+        .container-body {
+          grid-template-columns: 1fr;
+        }
+        .container-divider {
+          display: none;
+        }
+      }
+
+      .container-divider {
+        background: var(--border);
+        align-self: stretch;
+      }
+
+      .config-side h4,
+      .beans-side h4 {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.68rem;
+        letter-spacing: 0.2em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+      }
+
+      .config-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 0.9rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 0.6rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--teal);
+        cursor: default;
+        transition: border-color 0.2s;
+      }
+
+      .config-item:hover {
+        border-color: rgba(45, 212, 191, 0.4);
+      }
+
+      .config-icon {
+        font-size: 0.9rem;
+      }
+
+      .beans-grid-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.7rem;
+      }
+
+      .bean-pill {
+        padding: 0.8rem 1rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.25s ease;
+        cursor: default;
+      }
+
+      .bean-pill:hover {
+        border-color: rgba(110, 231, 183, 0.4);
+        transform: scale(1.02);
+      }
+
+      .bean-pill::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 3px;
+        height: 100%;
+        background: var(--green2);
+      }
+
+      .bean-pill-name {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        color: var(--green2);
+        margin-bottom: 0.25rem;
+      }
+
+      .bean-pill-type {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.65rem;
+        color: var(--muted);
+      }
+
+      .bean-pill-scope {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.55rem;
+        background: rgba(110, 231, 183, 0.1);
+        color: var(--green3);
+        padding: 0.1rem 0.35rem;
+        border-radius: 3px;
+      }
+
+      /* ── FLOW ANIMATION ── */
+      .flow-section {
+        padding: 6rem 2rem;
+        background: var(--dark2);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .flow-section > .inner {
+        max-width: 1100px;
+        margin: 0 auto;
+      }
+
+      .flow-diagram {
+        margin-top: 3rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        position: relative;
+      }
+
+      .flow-step {
+        display: grid;
+        grid-template-columns: 60px 2px 1fr;
+        gap: 0 1.5rem;
+        align-items: start;
+        padding-bottom: 2.5rem;
+        opacity: 0;
+        transform: translateX(-20px);
+        transition:
+          opacity 0.5s ease,
+          transform 0.5s ease;
+      }
+
+      .flow-step.visible {
+        opacity: 1;
+        transform: translateX(0);
+      }
+
+      .flow-number {
+        width: 60px;
+        height: 60px;
+        background: var(--surface);
+        border: 2px solid var(--border);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "DM Serif Display", serif;
+        font-size: 1.4rem;
+        color: var(--green2);
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+        transition:
+          border-color 0.3s,
+          box-shadow 0.3s;
+      }
+
+      .flow-step:hover .flow-number {
+        border-color: var(--green2);
+        box-shadow: 0 0 20px rgba(110, 231, 183, 0.25);
+      }
+
+      .flow-line {
+        background: var(--border);
+        width: 2px;
+        height: calc(100% - 30px);
+        margin-top: 60px;
+        position: relative;
+      }
+
+      .flow-line::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 0%;
+        background: linear-gradient(to bottom, var(--green2), transparent);
+        transition: height 1s ease;
+      }
+
+      .flow-step.visible .flow-line::before {
+        height: 100%;
+      }
+
+      .flow-step:last-child .flow-line {
+        display: none;
+      }
+
+      .flow-content {
+        padding-top: 0.9rem;
+      }
+
+      .flow-content h3 {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--accent);
+        margin-bottom: 0.4rem;
+      }
+
+      .flow-content p {
+        font-size: 0.9rem;
+        color: var(--muted);
+        line-height: 1.65;
+        max-width: 500px;
+      }
+
+      .flow-code {
+        margin-top: 0.85rem;
+        background: var(--dark3);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 0.9rem 1.1rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        color: var(--text);
+        line-height: 1.7;
+        display: inline-block;
+      }
+
+      /* ── DI WAYS SECTION ── */
+      .di-tabs {
+        margin-top: 2.5rem;
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0;
+        flex-wrap: wrap;
+      }
+
+      .di-tab {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.75rem;
+        padding: 0.6rem 1.1rem;
+        border: 1px solid transparent;
+        border-bottom: none;
+        border-radius: 8px 8px 0 0;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 0.2s;
+        letter-spacing: 0.05em;
+      }
+
+      .di-tab:hover {
+        color: var(--text);
+      }
+
+      .di-tab.active {
+        background: var(--dark2);
+        border-color: var(--border);
+        color: var(--green2);
+        margin-bottom: -1px;
+        border-bottom: 1px solid var(--dark2);
+      }
+
+      .di-panel {
+        background: var(--dark2);
+        border: 1px solid var(--border);
+        border-top: none;
+        border-radius: 0 0 12px 12px;
+        display: none;
+      }
+
+      .di-panel.active {
+        display: block;
+      }
+
+      .di-panel pre {
+        padding: 1.5rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.78rem;
+        line-height: 1.8;
+        overflow-x: auto;
+      }
+
+      /* ── MENTAL MODEL SECTION ── */
+      .model-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.25rem;
+        margin-top: 2.5rem;
+      }
+
+      @media (max-width: 600px) {
+        .model-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .model-card {
+        background: var(--dark2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.6rem;
+        position: relative;
+        overflow: hidden;
+        transition:
+          transform 0.3s,
+          box-shadow 0.3s;
+      }
+
+      .model-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+      }
+
+      .model-card::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(to right, var(--green3), var(--teal));
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.4s ease;
+      }
+
+      .model-card:hover::after {
+        transform: scaleX(1);
+      }
+
+      .model-concept {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.7rem;
+        letter-spacing: 0.15em;
+        color: var(--green3);
+        text-transform: uppercase;
+        margin-bottom: 0.5rem;
+      }
+
+      .model-analogy {
+        font-family: "DM Serif Display", serif;
+        font-size: 1.25rem;
+        color: var(--accent);
+        margin-bottom: 0.75rem;
+        line-height: 1.3;
+      }
+
+      .model-desc {
+        font-size: 0.88rem;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+
+      .model-emoji {
+        font-size: 2rem;
+        margin-bottom: 0.75rem;
+        display: block;
+        filter: grayscale(20%);
+      }
+
+      /* ── FOOTER ── */
+      .finale {
+        padding: 5rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .finale::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse 60% 50% at 50% 100%,
+          rgba(5, 150, 105, 0.2),
+          transparent
+        );
+      }
+
+      .finale h2 {
+        font-family: "DM Serif Display", serif;
+        font-size: clamp(1.8rem, 4vw, 3rem);
+        color: var(--accent);
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .finale p {
+        color: var(--muted);
+        max-width: 500px;
+        margin: 0 auto;
+        line-height: 1.7;
+        font-size: 0.95rem;
+        position: relative;
+      }
+
+      .next-chips {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+        position: relative;
+      }
+
+      .chip {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text);
+        padding: 0.55rem 1.1rem;
+        border-radius: 2rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.05em;
+        cursor: default;
+        transition: all 0.25s;
+      }
+
+      .chip:hover {
+        border-color: var(--green2);
+        color: var(--green2);
+        background: rgba(110, 231, 183, 0.06);
+      }
+
+      /* ── ANIMATIONS ── */
+      @keyframes fadeDown {
+        from {
+          opacity: 0;
+          transform: translateY(-16px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .reveal {
+        opacity: 0;
+        transform: translateY(24px);
+        transition:
+          opacity 0.6s ease,
+          transform 0.6s ease;
+      }
+
+      .reveal.visible {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
+      /* Floating orbs */
+      .orb {
+        position: fixed;
+        border-radius: 50%;
+        filter: blur(80px);
+        pointer-events: none;
+        z-index: 0;
+        animation: orbFloat 18s ease-in-out infinite;
+      }
+
+      .orb1 {
+        width: 400px;
+        height: 400px;
+        background: rgba(6, 95, 70, 0.18);
+        top: -100px;
+        left: -100px;
+        animation-delay: 0s;
+      }
+
+      .orb2 {
+        width: 300px;
+        height: 300px;
+        background: rgba(45, 212, 191, 0.08);
+        bottom: 20%;
+        right: -80px;
+        animation-delay: -6s;
+      }
+
+      .orb3 {
+        width: 250px;
+        height: 250px;
+        background: rgba(5, 150, 105, 0.12);
+        top: 50%;
+        left: 40%;
+        animation-delay: -12s;
+      }
+
+      @keyframes orbFloat {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        33% {
+          transform: translate(30px, -20px) scale(1.05);
+        }
+        66% {
+          transform: translate(-20px, 30px) scale(0.95);
+        }
+      }
+
+      /* Divider */
+      .divider {
+        height: 1px;
+        background: linear-gradient(
+          to right,
+          transparent,
+          var(--border),
+          transparent
+        );
+        margin: 0 2rem;
+      }
+
+      /* Inline highlight */
+      .hl {
+        color: var(--green2);
+        font-weight: 600;
+      }
+      .hl-teal {
+        color: var(--teal);
+      }
+      .hl-yellow {
+        color: var(--yellow);
+      }
+
+      /* scrollbar */
+      ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--dark);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--surface2);
+        border-radius: 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="spring-nav">
+      <div class="spring-nav-brand">SPRING CORE</div>
+      <div class="spring-nav-links">
+        <a class="spring-nav-link sn-active" href="spring-core-explainer.html"
+          ><span class="sn-num">1</span>IoC, Beans &amp; Context</a
+        >
+        <a class="spring-nav-link" href="spring-02-scopes-lifecycle.html"
+          ><span class="sn-num">2</span>Scopes &amp; Lifecycle</a
+        >
+        <a class="spring-nav-link" href="spring-03-aop-proxies.html"
+          ><span class="sn-num">3</span>AOP &amp; Proxies</a
+        >
+        <a class="spring-nav-link" href="spring-04-autowired.html"
+          ><span class="sn-num">4</span>@Autowired</a
+        >
+        <a class="spring-nav-link" href="spring-05-transactions.html"
+          ><span class="sn-num">5</span>@Transactional</a
+        >
+      </div>
+    </nav>
+    '
+
+    <!-- Ambient orbs -->
+    <div class="orb orb1"></div>
+    <div class="orb orb2"></div>
+    <div class="orb orb3"></div>
+
+    <!-- ══════════════════ HERO ══════════════════ -->
+    <div class="hero">
+      <div class="hero-bg"></div>
+      <div class="grid-lines"></div>
+
+      <div class="hero-badge">● SPRING FRAMEWORK — LECTURE 01</div>
+
+      <h1>
+        The Heart of<br />
+        <em>Spring</em>
+      </h1>
+
+      <p class="hero-sub">
+        IoC, Dependency Injection, Beans, and the ApplicationContext — the four
+        pillars that everything in Spring is built on.
+      </p>
+
+      <div class="scroll-hint">
+        <span>SCROLL TO EXPLORE</span>
+        <div class="scroll-arrow"></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ PROBLEM ══════════════════ -->
+    <section id="problem">
+      <div class="section-label">01 — The Problem</div>
+      <h2 class="section-title reveal">
+        Why does <span>Spring exist</span> at all?
+      </h2>
+      <p class="prose reveal">
+        Before Spring, every Java object created its own dependencies using
+        <code
+          style="
+            color: var(--teal);
+            font-family: &quot;JetBrains Mono&quot;, monospace;
+            font-size: 0.9em;
+          "
+          >new</code
+        >. This seems harmless at first — until your classes become a tangled
+        web of creation logic that's impossible to test or maintain.
+      </p>
+
+      <div class="problem-grid reveal">
+        <div class="code-card code-bad">
+          <div class="code-card-header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <span class="code-card-title">OrderService.java</span>
+            <span class="badge-bad" style="margin-left: auto"
+              >❌ TIGHT COUPLING</span
+            >
+          </div>
+          <pre><span class="kw">public class</span> <span class="cls">OrderService</span> {
+  <span class="kw">private</span> <span class="cls">PaymentService</span> ps;
+  <span class="kw">private</span> <span class="cls">InventoryService</span> inv;
+
+  <span class="kw">public</span> <span class="fn">OrderService</span>() {
+    <span class="cmt">// ❌ Creating its own deps</span>
+    ps  = <span class="kw">new</span> <span class="cls">PaymentService</span>();
+    inv = <span class="kw">new</span> <span class="cls">InventoryService</span>();
+  }
+}</pre>
+        </div>
+
+        <div class="code-card code-good">
+          <div class="code-card-header">
+            <div class="dot red"></div>
+            <div class="dot yellow"></div>
+            <div class="dot green"></div>
+            <span class="code-card-title">OrderService.java</span>
+            <span class="badge-good" style="margin-left: auto"
+              >✅ SPRING WAY</span
+            >
+          </div>
+          <pre><span class="kw">public class</span> <span class="cls">OrderService</span> {
+  <span class="kw">private final</span> <span class="cls">PaymentService</span> ps;
+  <span class="kw">private final</span> <span class="cls">InventoryService</span> inv;
+
+  <span class="cmt">// ✅ Spring passes them in</span>
+  <span class="kw">public</span> <span class="fn">OrderService</span>(
+      <span class="cls">PaymentService</span> ps,
+      <span class="cls">InventoryService</span> inv) {
+    <span class="kw">this</span>.ps  = ps;
+    <span class="kw">this</span>.inv = inv;
+  }
+}</pre>
+        </div>
+      </div>
+
+      <!-- Problems list -->
+      <div
+        style="
+          margin-top: 2rem;
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 1rem;
+        "
+        class="reveal"
+      >
+        <div
+          style="
+            padding: 1.2rem;
+            background: var(--dark2);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 10px;
+          "
+        >
+          <div style="color: #f87171; font-size: 1.2rem; margin-bottom: 0.5rem">
+            🔒
+          </div>
+          <div
+            style="
+              font-weight: 700;
+              color: var(--accent);
+              font-size: 0.9rem;
+              margin-bottom: 0.3rem;
+            "
+          >
+            Hard to test
+          </div>
+          <div
+            style="font-size: 0.82rem; color: var(--muted); line-height: 1.6"
+          >
+            Can't swap a real
+            <code style="font-family: &quot;JetBrains Mono&quot;, monospace"
+              >PaymentService</code
+            >
+            for a mock in tests
+          </div>
+        </div>
+        <div
+          style="
+            padding: 1.2rem;
+            background: var(--dark2);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 10px;
+          "
+        >
+          <div style="color: #f87171; font-size: 1.2rem; margin-bottom: 0.5rem">
+            🕸
+          </div>
+          <div
+            style="
+              font-weight: 700;
+              color: var(--accent);
+              font-size: 0.9rem;
+              margin-bottom: 0.3rem;
+            "
+          >
+            Dependency hell
+          </div>
+          <div
+            style="font-size: 0.82rem; color: var(--muted); line-height: 1.6"
+          >
+            One class change ripples through everything that creates it
+          </div>
+        </div>
+        <div
+          style="
+            padding: 1.2rem;
+            background: var(--dark2);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: 10px;
+          "
+        >
+          <div style="color: #f87171; font-size: 1.2rem; margin-bottom: 0.5rem">
+            ♻️
+          </div>
+          <div
+            style="
+              font-weight: 700;
+              color: var(--accent);
+              font-size: 0.9rem;
+              margin-bottom: 0.3rem;
+            "
+          >
+            No reuse
+          </div>
+          <div
+            style="font-size: 0.82rem; color: var(--muted); line-height: 1.6"
+          >
+            Every class creates its own copy — no shared singleton instances
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════ IOC ══════════════════ -->
+    <section id="ioc">
+      <div class="section-label">02 — The Principle</div>
+      <h2 class="section-title reveal">Inversion of <span>Control</span></h2>
+      <p class="prose reveal">
+        The core idea of Spring is one sentence:<br />
+        <strong
+          style="
+            color: var(--accent);
+            font-family: &quot;DM Serif Display&quot;, serif;
+            font-size: 1.1em;
+          "
+          >"Don't call us — we'll call you."</strong
+        ><br /><br />
+        Instead of your objects building their dependencies, you hand that
+        control over to Spring. Spring becomes the boss of object creation and
+        wiring.
+      </p>
+
+      <div class="ioc-visual reveal">
+        <div class="ioc-box bad">
+          <div class="ioc-box-label">❌ Traditional</div>
+          <div class="ioc-box-title">You're in control</div>
+          <p>
+            Your class decides when and how to create
+            <code
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                color: var(--teal);
+                font-size: 0.85em;
+              "
+              >PaymentService</code
+            >. It knows everything about its construction.
+          </p>
+          <div
+            style="
+              margin-top: 1rem;
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.75rem;
+              background: var(--dark3);
+              padding: 0.8rem;
+              border-radius: 6px;
+              border: 1px solid rgba(248, 113, 113, 0.2);
+            "
+          >
+            <span style="color: var(--muted)">// Caller creates the callee</span
+            ><br />
+            <span style="color: #93c5fd">new</span>
+            <span style="color: var(--yellow)">PaymentService</span>()
+          </div>
+        </div>
+
+        <div class="ioc-arrow">
+          <div
+            style="
+              font-size: 0.6rem;
+              color: var(--muted);
+              margin-bottom: 0.3rem;
+              letter-spacing: 0.15em;
+            "
+          >
+            INVERT
+          </div>
+          <div class="arrow-line"></div>
+          <div
+            style="
+              font-size: 0.6rem;
+              color: var(--green2);
+              margin-top: 0.3rem;
+              letter-spacing: 0.1em;
+            "
+          >
+            IoC
+          </div>
+        </div>
+
+        <div class="ioc-box good">
+          <div class="ioc-box-label">✅ Spring IoC</div>
+          <div class="ioc-box-title">Spring is in control</div>
+          <p>
+            Spring decides when and how to create every object. Your class just
+            <em>declares what it needs</em> and Spring delivers it.
+          </p>
+          <div
+            style="
+              margin-top: 1rem;
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 0.75rem;
+              background: var(--dark3);
+              padding: 0.8rem;
+              border-radius: 6px;
+              border: 1px solid rgba(110, 231, 183, 0.2);
+            "
+          >
+            <span style="color: var(--muted)">// Spring creates & injects</span
+            ><br />
+            <span style="color: var(--teal)">@Autowired</span>
+            <span style="color: var(--yellow)">PaymentService</span> ps;
+          </div>
+        </div>
+      </div>
+
+      <!-- DI explanation -->
+      <div style="margin-top: 3rem" class="reveal">
+        <div
+          style="
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+          "
+        >
+          <div
+            style="
+              position: absolute;
+              top: 0;
+              right: 0;
+              width: 200px;
+              height: 200px;
+              background: radial-gradient(
+                circle at top right,
+                rgba(45, 212, 191, 0.08),
+                transparent
+              );
+              pointer-events: none;
+            "
+          ></div>
+          <div class="section-label" style="margin-bottom: 1rem">
+            DI — The Mechanism
+          </div>
+          <h3
+            style="
+              font-family: &quot;DM Serif Display&quot;, serif;
+              font-size: 1.6rem;
+              color: var(--accent);
+              margin-bottom: 0.75rem;
+            "
+          >
+            IoC is the <em>principle</em>.<br />Dependency Injection is
+            <span style="color: var(--teal)">how it's done.</span>
+          </h3>
+          <p
+            style="
+              color: var(--muted);
+              font-size: 0.92rem;
+              line-height: 1.7;
+              max-width: 600px;
+            "
+          >
+            DI means Spring
+            <strong style="color: var(--text)">"injects"</strong> (passes in)
+            the objects a class needs — either through the
+            <span class="hl">constructor</span>, a
+            <span class="hl-teal">setter method</span>, or directly into a
+            <span class="hl-yellow">field</span>. You declare what you need;
+            Spring finds it and delivers it.
+          </p>
+          <div
+            style="
+              margin-top: 1.5rem;
+              display: flex;
+              gap: 0.75rem;
+              flex-wrap: wrap;
+            "
+          >
+            <div
+              style="
+                padding: 0.5rem 1rem;
+                background: rgba(110, 231, 183, 0.08);
+                border: 1px solid rgba(110, 231, 183, 0.2);
+                border-radius: 6px;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.72rem;
+                color: var(--green2);
+              "
+            >
+              Constructor Injection ⭐ preferred
+            </div>
+            <div
+              style="
+                padding: 0.5rem 1rem;
+                background: var(--dark2);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.72rem;
+                color: var(--muted);
+              "
+            >
+              Setter Injection
+            </div>
+            <div
+              style="
+                padding: 0.5rem 1rem;
+                background: var(--dark2);
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.72rem;
+                color: var(--muted);
+              "
+            >
+              Field Injection
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════ BEANS ══════════════════ -->
+    <section id="beans">
+      <div class="section-label">03 — Beans</div>
+      <h2 class="section-title reveal">What is a <span>Bean</span>?</h2>
+      <p class="prose reveal">
+        A Bean is simply
+        <strong style="color: var(--accent)"
+          >any Java object whose lifecycle is managed by Spring.</strong
+        >
+        Nothing magical. Not a special class. Just a regular object that you've
+        handed ownership of to Spring.
+      </p>
+
+      <div class="bean-grid reveal">
+        <div class="bean-card">
+          <div class="bean-icon">🏭</div>
+          <h3>Spring Creates It</h3>
+          <p>
+            You never call
+            <code
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >new</code
+            >
+            yourself. Spring reads your config and instantiates the object for
+            you.
+          </p>
+          <span class="bean-tag">instantiation</span>
+        </div>
+        <div class="bean-card">
+          <div class="bean-icon">📦</div>
+          <h3>Spring Stores It</h3>
+          <p>
+            By default, Spring creates
+            <strong style="color: var(--accent)">exactly one instance</strong>
+            (singleton) and keeps it in the container, ready to inject.
+          </p>
+          <span class="bean-tag">singleton scope</span>
+        </div>
+        <div class="bean-card">
+          <div class="bean-icon">🔌</div>
+          <h3>Spring Wires It</h3>
+          <p>
+            Spring injects the bean wherever it's needed — no manual lookup, no
+            <code
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >new</code
+            >, no service locator pattern.
+          </p>
+          <span class="bean-tag">dependency injection</span>
+        </div>
+        <div class="bean-card">
+          <div class="bean-icon">⏰</div>
+          <h3>Spring Manages Lifecycle</h3>
+          <p>
+            From creation, through
+            <code
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >@PostConstruct</code
+            >
+            init callbacks, to
+            <code
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >@PreDestroy</code
+            >
+            cleanup on shutdown.
+          </p>
+          <span class="bean-tag">lifecycle</span>
+        </div>
+        <div class="bean-card">
+          <div class="bean-icon">📖</div>
+          <h3>Has a Name</h3>
+          <p>
+            Every bean has an ID (usually the class name in camelCase). Spring
+            uses it to look up and inject the right instance.
+          </p>
+          <span class="bean-tag">bean id</span>
+        </div>
+        <div class="bean-card">
+          <div class="bean-icon">🧬</div>
+          <h3>Has a Scope</h3>
+          <p>
+            Singleton (default), Prototype (new instance each time), Request,
+            Session — you control how many instances exist.
+          </p>
+          <span class="bean-tag">scopes</span>
+        </div>
+      </div>
+
+      <!-- 3 ways to define beans -->
+      <div style="margin-top: 3.5rem" class="reveal">
+        <h3
+          style="
+            font-family: &quot;DM Serif Display&quot;, serif;
+            font-size: 1.6rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+          "
+        >
+          3 Ways to Define Beans
+        </h3>
+        <p
+          style="
+            color: var(--muted);
+            font-size: 0.88rem;
+            margin-bottom: 0;
+            line-height: 1.6;
+          "
+        >
+          Choose your preferred style — Spring understands all three.
+        </p>
+
+        <div class="di-tabs" id="diTabs">
+          <button class="di-tab active" data-tab="java">@Configuration</button>
+          <button class="di-tab" data-tab="component">@Component Scan</button>
+          <button class="di-tab" data-tab="xml">XML (Legacy)</button>
+        </div>
+
+        <div class="di-panel active" id="tab-java">
+          <pre><span class="ann">@Configuration</span>  <span class="cmt">// "This class defines beans"</span>
+<span class="kw">public class</span> <span class="cls">AppConfig</span> {
+
+    <span class="ann">@Bean</span>  <span class="cmt">// "This method's return value is a bean"</span>
+    <span class="kw">public</span> <span class="cls">PaymentService</span> <span class="fn">paymentService</span>() {
+        <span class="kw">return new</span> <span class="cls">PaymentService</span>();
+    }
+
+    <span class="ann">@Bean</span>
+    <span class="kw">public</span> <span class="cls">OrderService</span> <span class="fn">orderService</span>() {
+        <span class="cmt">// Spring intercepts this call — returns the SAME instance</span>
+        <span class="kw">return new</span> <span class="cls">OrderService</span>(<span class="fn">paymentService</span>());
+    }
+}</pre>
+        </div>
+
+        <div class="di-panel" id="tab-component">
+          <pre><span class="ann">@Component</span>  <span class="cmt">// "Spring, manage me as a bean"</span>
+<span class="kw">public class</span> <span class="cls">PaymentService</span> { ... }
+
+<span class="ann">@Component</span>
+<span class="kw">public class</span> <span class="cls">OrderService</span> {
+
+    <span class="kw">private final</span> <span class="cls">PaymentService</span> paymentService;
+
+    <span class="ann">@Autowired</span>  <span class="cmt">// "Inject the matching bean here"</span>
+    <span class="kw">public</span> <span class="fn">OrderService</span>(<span class="cls">PaymentService</span> ps) {
+        <span class="kw">this</span>.paymentService = ps;
+    }
+}
+
+<span class="ann">@Configuration</span>
+<span class="ann">@ComponentScan</span>(<span class="str">"com.myapp"</span>)  <span class="cmt">// Scan this package</span>
+<span class="kw">public class</span> <span class="cls">AppConfig</span> { }</pre>
+        </div>
+
+        <div class="di-panel" id="tab-xml">
+          <pre><span class="cmt">&lt;!-- applicationContext.xml (old-school way) --&gt;</span>
+<span class="kw">&lt;beans&gt;</span>
+
+    <span class="kw">&lt;bean</span> <span class="str">id</span>=<span class="str2">"paymentService"</span>
+          <span class="str">class</span>=<span class="str2">"com.app.PaymentService"</span><span class="kw">/&gt;</span>
+
+    <span class="kw">&lt;bean</span> <span class="str">id</span>=<span class="str2">"orderService"</span>
+          <span class="str">class</span>=<span class="str2">"com.app.OrderService"</span><span class="kw">&gt;</span>
+        <span class="kw">&lt;constructor-arg</span> <span class="str">ref</span>=<span class="str2">"paymentService"</span><span class="kw">/&gt;</span>
+    <span class="kw">&lt;/bean&gt;</span>
+
+<span class="kw">&lt;/beans&gt;</span>
+
+<span class="cmt">// You'll see this in old codebases.
+// Annotations / Java Config are modern standard.</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════ CONTAINER ══════════════════ -->
+    <section id="container">
+      <div class="section-label">04 — The Container</div>
+      <h2 class="section-title reveal">The <span>ApplicationContext</span></h2>
+      <p class="prose reveal">
+        The ApplicationContext is Spring's brain — the
+        <strong style="color: var(--accent)">IoC Container</strong>. It reads
+        your config, creates all beans, wires them together, and manages their
+        entire lifecycle. Think of it as a phonebook + factory + lifecycle
+        manager in one.
+      </p>
+
+      <div class="container-visual reveal">
+        <div class="container-header">
+          <span class="container-title"
+            >ApplicationContext (Spring's Brain)</span
+          >
+          <div style="display: flex; gap: 0.5rem; align-items: center">
+            <div
+              style="
+                width: 8px;
+                height: 8px;
+                background: var(--green2);
+                border-radius: 50%;
+                animation: blink 2s infinite;
+              "
+            ></div>
+            <span
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.65rem;
+                color: var(--muted);
+              "
+              >RUNNING</span
+            >
+          </div>
+        </div>
+        <div class="container-body">
+          <div class="config-side">
+            <h4>📄 Your Config</h4>
+            <div class="config-item">
+              <span class="config-icon">🏷</span>@Configuration class
+            </div>
+            <div class="config-item">
+              <span class="config-icon">🔍</span>@ComponentScan
+            </div>
+            <div class="config-item">
+              <span class="config-icon">📋</span>applicationContext.xml
+            </div>
+            <div
+              style="
+                margin-top: 1.5rem;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.7rem;
+                color: var(--muted);
+                line-height: 1.8;
+              "
+            >
+              <span style="color: var(--green2)">new</span>
+              AnnotationConfig<br />ApplicationContext(<br />
+              &nbsp;&nbsp;<span style="color: var(--yellow)">AppConfig</span
+              >.class<br />);
+            </div>
+          </div>
+          <div class="container-divider"></div>
+          <div class="beans-side">
+            <h4>🫘 Managed Beans (Singleton Registry)</h4>
+            <div class="beans-grid-inner">
+              <div class="bean-pill">
+                <div class="bean-pill-scope">singleton</div>
+                <div class="bean-pill-name">paymentService</div>
+                <div class="bean-pill-type">PaymentService{}</div>
+              </div>
+              <div class="bean-pill">
+                <div class="bean-pill-scope">singleton</div>
+                <div class="bean-pill-name">inventoryService</div>
+                <div class="bean-pill-type">InventoryService{}</div>
+              </div>
+              <div class="bean-pill" style="border-left-color: var(--teal)">
+                <div
+                  class="bean-pill-scope"
+                  style="
+                    color: var(--teal);
+                    background: rgba(45, 212, 191, 0.1);
+                  "
+                >
+                  wired
+                </div>
+                <div class="bean-pill-name" style="color: var(--teal)">
+                  orderService
+                </div>
+                <div class="bean-pill-type">
+                  OrderService{<br />&nbsp;↳ paymentService<br />&nbsp;↳
+                  inventoryService<br />}
+                </div>
+              </div>
+              <div class="bean-pill">
+                <div class="bean-pill-scope">singleton</div>
+                <div class="bean-pill-name">userRepository</div>
+                <div class="bean-pill-type">UserRepo{}</div>
+              </div>
+            </div>
+            <div
+              style="
+                margin-top: 1.25rem;
+                background: var(--dark3);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 1rem;
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.75rem;
+                line-height: 1.8;
+              "
+            >
+              <span class="cmt">// Ask the context for a bean</span><br />
+              <span class="cls">OrderService</span> os = ctx<br />
+              &nbsp;&nbsp;.<span class="fn">getBean</span>(<span class="cls"
+                >OrderService</span
+              >.class);<br />
+              <br />
+              os.<span class="fn">placeOrder</span>(<span
+                style="color: var(--yellow)"
+                >99.99</span
+              >);<br />
+              <span class="cmt">// Fully wired. Ready to go. ✅</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ FLOW ══════════════════ -->
+    <div class="flow-section">
+      <div class="inner">
+        <div class="section-label">05 — The Full Picture</div>
+        <h2 class="section-title reveal">
+          How it all <span>flows</span> together
+        </h2>
+        <p class="prose reveal">
+          From your configuration file to a fully assembled, running application
+          — here's the exact sequence Spring follows every time you start your
+          app.
+        </p>
+
+        <div class="flow-diagram" id="flowDiagram">
+          <div class="flow-step">
+            <div class="flow-number">1</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>You write your Config</h3>
+              <p>
+                Whether it's a
+                <code
+                  style="
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                    color: var(--teal);
+                  "
+                  >@Configuration</code
+                >
+                class, component-scanned packages, or XML — you declare your
+                beans.
+              </p>
+              <div class="flow-code">
+                <span class="ann">@Configuration</span><br /><span class="kw"
+                  >public class</span
+                >
+                <span class="cls">AppConfig</span> {
+                <span class="ann">@Bean</span> ... }
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-number">2</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>ApplicationContext reads Config</h3>
+              <p>
+                You bootstrap the container by passing your config. Spring reads
+                it and builds a map of "what beans do I need to create?"
+              </p>
+              <div class="flow-code">
+                <span class="cls">ApplicationContext</span> ctx =<br />&nbsp;&nbsp;<span
+                  class="kw"
+                  >new</span
+                >
+                <span class="cls">AnnotationConfigApplicationContext</span
+                >(<span class="cls">AppConfig</span>.class);
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-number">3</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>Beans are instantiated</h3>
+              <p>
+                Spring creates instances of all beans — in the right order,
+                resolving dependencies first before creating dependents.
+              </p>
+              <div class="flow-code">
+                <span class="cmt">// Spring creates:</span><br /><span
+                  class="cls"
+                  >PaymentService</span
+                >
+                ← first (no deps)<br /><span class="cls">OrderService</span> ←
+                second (needs PaymentService)
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-number">4</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>Dependencies are injected</h3>
+              <p>
+                Spring wires everything together — constructor args, setter
+                calls, or field injection. Each bean gets exactly what it
+                declared.
+              </p>
+              <div class="flow-code">
+                <span class="cmt">// Spring calls:</span><br /><span class="kw"
+                  >new</span
+                >
+                <span class="cls">OrderService</span
+                >(paymentService);<br /><span class="cmt"
+                  >// orderService is now fully wired ✅</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-number">5</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>Lifecycle callbacks run</h3>
+              <p>
+                Any methods marked
+                <code
+                  style="
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                    color: var(--teal);
+                  "
+                  >@PostConstruct</code
+                >
+                are called — great for initialization logic after injection is
+                complete.
+              </p>
+              <div class="flow-code">
+                <span class="ann">@PostConstruct</span><br /><span class="kw"
+                  >public void</span
+                >
+                <span class="fn">init</span>() {<br />&nbsp;&nbsp;<span
+                  class="cmt"
+                  >// runs after all deps injected</span
+                ><br />}
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-number">6</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>Your app runs</h3>
+              <p>
+                You call
+                <code
+                  style="
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                    color: var(--teal);
+                  "
+                  >ctx.getBean()</code
+                >
+                (or in Spring Boot, it's all automatic). The full object graph
+                is assembled and ready.
+              </p>
+              <div class="flow-code">
+                <span class="cls">OrderService</span> os = ctx.<span class="fn"
+                  >getBean</span
+                >(<span class="cls">OrderService</span>.class);<br />os.<span
+                  class="fn"
+                  >placeOrder</span
+                >(<span style="color: var(--yellow)">99.99</span>);
+                <span class="cmt">// 🚀</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flow-step">
+            <div class="flow-number">7</div>
+            <div class="flow-line"></div>
+            <div class="flow-content">
+              <h3>Shutdown & cleanup</h3>
+              <p>
+                When the context closes, Spring calls
+                <code
+                  style="
+                    font-family: &quot;JetBrains Mono&quot;, monospace;
+                    color: var(--teal);
+                  "
+                  >@PreDestroy</code
+                >
+                on beans — useful for closing connections, flushing buffers,
+                etc.
+              </p>
+              <div class="flow-code">
+                <span class="ann">@PreDestroy</span><br /><span class="kw"
+                  >public void</span
+                >
+                <span class="fn">cleanup</span>() {<br />&nbsp;&nbsp;<span
+                  class="cmt"
+                  >// runs before bean is destroyed</span
+                ><br />}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════ MENTAL MODELS ══════════════════ -->
+    <section id="mental-models">
+      <div class="section-label">06 — Mental Models</div>
+      <h2 class="section-title reveal">
+        The analogies that <span>make it click</span>
+      </h2>
+      <p class="prose reveal">
+        Sometimes the best way to deeply understand a concept is through the
+        right analogy. Carry these with you.
+      </p>
+
+      <div class="model-grid reveal">
+        <div class="model-card">
+          <span class="model-emoji">📞</span>
+          <div class="model-concept">Beans</div>
+          <div class="model-analogy">Entries in a phonebook</div>
+          <p class="model-desc">
+            Spring has a phonebook of every object it manages. When something
+            needs a
+            <code
+              style="
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                font-size: 0.85em;
+                color: var(--teal);
+              "
+              >PaymentService</code
+            >, Spring looks it up and hands back the one it has on file.
+          </p>
+        </div>
+
+        <div class="model-card">
+          <span class="model-emoji">👔</span>
+          <div class="model-concept">IoC</div>
+          <div class="model-analogy">Spring is the boss</div>
+          <p class="model-desc">
+            You're a worker. You don't find your own tools — the boss assigns
+            them to you before your shift starts. Your job is just to do the
+            work, not manage the supply room.
+          </p>
+        </div>
+
+        <div class="model-card">
+          <span class="model-emoji">🖥️</span>
+          <div class="model-concept">Dependency Injection</div>
+          <div class="model-analogy">Tools on your desk</div>
+          <p class="model-desc">
+            Before you start working, someone puts everything you need right on
+            your desk. You didn't go find them — they were delivered.
+            Constructor injection = delivered before you sit down.
+          </p>
+        </div>
+
+        <div class="model-card">
+          <span class="model-emoji">🧠</span>
+          <div class="model-concept">ApplicationContext</div>
+          <div class="model-analogy">The phonebook + factory + manager</div>
+          <p class="model-desc">
+            It knows what objects exist (phonebook), can create new ones on
+            demand (factory), and tracks the whole lifecycle from birth to
+            shutdown (manager). It's Spring's entire brain.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════ FINALE ══════════════════ -->
+    <div class="finale">
+      <h2 class="reveal">
+        Now you understand
+        <em
+          style="
+            font-family: &quot;DM Serif Display&quot;, serif;
+            color: var(--green2);
+          "
+          >Spring</em
+        >
+      </h2>
+      <p class="reveal">
+        Every single thing in Spring — AOP, Transactions, Security, MVC, and all
+        of Spring Boot — is just more beans being added to this same container.
+        Spring Boot auto-configures them for you.
+      </p>
+      <div class="next-chips reveal">
+        <span class="chip">→ Bean Scopes</span>
+        <span class="chip">→ Bean Lifecycle in Depth</span>
+        <span class="chip">→ @Autowired Resolution</span>
+        <span class="chip">→ AOP & Proxies</span>
+        <span class="chip">→ Spring MVC</span>
+      </div>
+    </div>
+
+    <script>
+      // ── Intersection Observer for reveal animations ──
+      const revealEls = document.querySelectorAll(".reveal");
+      const revealObs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e, i) => {
+            if (e.isIntersecting) {
+              setTimeout(() => e.target.classList.add("visible"), 0);
+            }
+          });
+        },
+        { threshold: 0.1 },
+      );
+      revealEls.forEach((el) => revealObs.observe(el));
+
+      // ── Flow steps ──
+      const flowSteps = document.querySelectorAll(".flow-step");
+      const flowObs = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((e) => {
+            if (e.isIntersecting) {
+              const steps = document.querySelectorAll(".flow-step");
+              steps.forEach((step, i) => {
+                setTimeout(() => step.classList.add("visible"), i * 150);
+              });
+              flowObs.disconnect();
+            }
+          });
+        },
+        { threshold: 0.1 },
+      );
+      if (flowSteps.length) flowObs.observe(flowSteps[0]);
+
+      // ── Tabs ──
+      document.querySelectorAll(".di-tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document
+            .querySelectorAll(".di-tab")
+            .forEach((t) => t.classList.remove("active"));
+          document
+            .querySelectorAll(".di-panel")
+            .forEach((p) => p.classList.remove("active"));
+          tab.classList.add("active");
+          document
+            .getElementById("tab-" + tab.dataset.tab)
+            .classList.add("active");
+        });
+      });
+    </script>
+  </body>
+</html>
