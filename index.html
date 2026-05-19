@@ -2156,7 +2156,7 @@
             </div>
           </div>
 
-          <div class="flow-step">
+          <!-- <div class="flow-step">
             <div class="flow-number">7</div>
             <div class="flow-line"></div>
             <div class="flow-content">
@@ -2186,7 +2186,29 @@
           </div>
         </div>
       </div>
+    </div> -->
+
+    <div class="flow-step">
+  <div class="flow-number">7</div>
+  <div class="flow-line"></div>
+  <div class="flow-content">
+    <h3>Shutdown & cleanup</h3>
+    <p>
+      When the context closes, Spring calls
+      <code style="font-family: 'JetBrains Mono', monospace; color: var(--teal);">
+        @PreDestroy
+      </code>
+      on beans — useful for closing connections, flushing buffers, etc.
+    </p>
+    <div class="flow-code">
+      <span class="ann">@PreDestroy</span><br />
+      <span class="kw">public void</span>
+      <span class="fn">cleanup</span>() {<br />
+      &nbsp;&nbsp;<span class="cmt">// runs before bean is destroyed</span><br />
+      }
     </div>
+  </div>
+</div>
 
     <!-- ══════════════════ MENTAL MODELS ══════════════════ -->
     <section id="mental-models">
