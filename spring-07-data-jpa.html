@@ -1,0 +1,1380 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spring Data JPA - Lecture 07</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg: #07080d;
+        --bg2: #0b0d16;
+        --bg3: #0f1120;
+        --sf: #131629;
+        --sf2: #192038;
+        --bd: #1e2540;
+        --bd2: #283260;
+        --text: #dde4ff;
+        --muted: #4a5580;
+        --mu2: #7d8cc4;
+        --ind: #818cf8;
+        --ind2: #6366f1;
+        --sky: #38bdf8;
+        --sky2: #0ea5e9;
+        --rose: #fb7185;
+        --em: #34d399;
+        --warn: #fbbf24;
+        --acc: #eef0ff;
+        --vio: #a78bfa;
+        --or: #fb923c;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Space Grotesk", sans-serif;
+        overflow-x: hidden;
+      }
+      pre, code { font-family: "JetBrains Mono", monospace; }
+      a { color: inherit; }
+
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.78' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+        z-index: 9999;
+      }
+
+      .nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        height: 50px;
+        background: rgba(7, 8, 13, 0.93);
+        border-bottom: 1px solid var(--bd);
+        backdrop-filter: blur(16px);
+        display: flex;
+        align-items: center;
+        padding: 0 1.5rem;
+      }
+      .main-nav { z-index: 220; }
+      .nav-brand {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .72rem;
+        letter-spacing: .18em;
+        color: var(--ind);
+        margin-right: 1.5rem;
+        white-space: nowrap;
+      }
+      .nav-links { display: flex; flex: 1; overflow-x: auto; }
+      .nav-link {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .6rem;
+        letter-spacing: .06em;
+        padding: 0 .9rem;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        color: var(--muted);
+        text-decoration: none;
+        border-right: 1px solid var(--bd);
+        white-space: nowrap;
+        transition: color .2s, background .2s;
+      }
+      .nav-link:first-child { border-left: 1px solid var(--bd); }
+      .nav-link:hover { color: var(--text); background: rgba(129, 140, 248, .04); }
+      .nav-link.done { color: var(--mu2); }
+      .nav-link.done .nn {
+        background: rgba(52, 211, 153, .12);
+        border-color: rgba(52, 211, 153, .3);
+        color: var(--em);
+      }
+      .nav-link.active { color: var(--ind); background: rgba(129, 140, 248, .06); }
+      .nav-link.active .nn {
+        background: rgba(129, 140, 248, .15);
+        border-color: var(--ind2);
+        color: var(--ind);
+      }
+      .nn {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--sf);
+        border: 1px solid var(--bd2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .55rem;
+        flex-shrink: 0;
+      }
+      .section-nav {
+        top: 50px;
+        z-index: 210;
+        height: 42px;
+        background: rgba(11, 13, 22, .9);
+        padding-left: 1.5rem;
+      }
+      .section-nav .nav-brand {
+        color: var(--sky);
+        font-size: .58rem;
+        letter-spacing: .16em;
+      }
+      .section-nav .nav-link {
+        height: 42px;
+        font-size: .56rem;
+        padding: 0 .75rem;
+      }
+      .section-nav .nn {
+        width: 15px;
+        height: 15px;
+        font-size: .5rem;
+      }
+
+      .hero {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 9.8rem 2rem 5rem;
+        position: relative;
+        overflow: hidden;
+      }
+      .h-bg {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(135deg, rgba(99, 102, 241, .16), transparent 42%),
+          linear-gradient(225deg, rgba(56, 189, 248, .09), transparent 45%),
+          linear-gradient(0deg, rgba(52, 211, 153, .07), transparent 55%);
+      }
+      .h-grid {
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(rgba(129, 140, 248, .08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(129, 140, 248, .08) 1px, transparent 1px);
+        background-size: 44px 44px;
+        mask-image: linear-gradient(to bottom, transparent, black 15%, black 70%, transparent);
+        animation: gridDrift 16s linear infinite;
+      }
+      @keyframes gridDrift { to { background-position: 44px 44px; } }
+      .hero-schema {
+        position: absolute;
+        width: min(900px, 92vw);
+        height: 360px;
+        opacity: .28;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+        align-items: center;
+      }
+      .schema-pill {
+        border: 1px solid rgba(129, 140, 248, .32);
+        background: rgba(19, 22, 41, .68);
+        border-radius: 8px;
+        min-height: 70px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: .62rem;
+        color: var(--mu2);
+        position: relative;
+      }
+      .schema-pill::after {
+        content: "";
+        position: absolute;
+        right: -1rem;
+        width: 1rem;
+        height: 1px;
+        background: rgba(129, 140, 248, .42);
+      }
+      .schema-pill:last-child::after { display: none; }
+      .hero-content { position: relative; z-index: 2; }
+      .tag {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .66rem;
+        letter-spacing: .22em;
+        color: var(--ind2);
+        border: 1px solid var(--bd2);
+        padding: .3rem 1rem;
+        border-radius: 2rem;
+        margin-bottom: 1.8rem;
+        background: rgba(99, 102, 241, .07);
+        display: inline-flex;
+        align-items: center;
+        gap: .55rem;
+        animation: fd .7s ease both;
+      }
+      .tag::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--em);
+        box-shadow: 0 0 9px var(--em);
+      }
+      .hero h1 {
+        font-family: "Libre Baskerville", serif;
+        font-size: clamp(2.8rem, 7vw, 6.5rem);
+        line-height: 1.05;
+        color: var(--acc);
+        animation: fd .85s ease .1s both;
+      }
+      .hero h1 em {
+        color: var(--ind);
+        display: block;
+        font-style: italic;
+      }
+      .hero-sub {
+        font-size: 1rem;
+        line-height: 1.8;
+        color: var(--mu2);
+        max-width: 620px;
+        margin: 1.5rem auto 0;
+        animation: fd 1s ease .2s both;
+      }
+      .hero-pills {
+        display: flex;
+        gap: .55rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.75rem;
+        animation: fd 1s ease .32s both;
+      }
+      .hp {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .63rem;
+        padding: .3rem .8rem;
+        border-radius: 2rem;
+        border: 1px solid var(--bd2);
+        color: var(--mu2);
+        background: var(--sf);
+      }
+      .scroll-c {
+        position: absolute;
+        bottom: 2.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: .4rem;
+        animation: fd 1.2s ease .55s both;
+      }
+      .scroll-c span {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .58rem;
+        letter-spacing: .2em;
+        color: var(--muted);
+      }
+      .scroll-c::after {
+        content: "";
+        width: 1.5px;
+        height: 40px;
+        background: linear-gradient(to bottom, var(--ind2), transparent);
+        animation: sb 2s ease-in-out infinite;
+      }
+      @keyframes sb { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(.5); } }
+      @keyframes fd { from { opacity: 0; transform: translateY(-13px); } to { opacity: 1; transform: translateY(0); } }
+
+      .wrap {
+        max-width: 1060px;
+        margin: 0 auto;
+        padding: 6rem 2rem;
+        position: relative;
+      }
+      section[id] { scroll-margin-top: 112px; }
+      .sl {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .64rem;
+        letter-spacing: .26em;
+        color: var(--ind2);
+        text-transform: uppercase;
+        margin-bottom: .9rem;
+        display: flex;
+        align-items: center;
+        gap: .75rem;
+      }
+      .sl::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, var(--bd2), transparent);
+        max-width: 180px;
+      }
+      .st {
+        font-family: "Libre Baskerville", serif;
+        font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+        color: var(--acc);
+        line-height: 1.15;
+        margin-bottom: 1.2rem;
+      }
+      .st span { color: var(--ind); }
+      .st em { color: var(--sky); font-style: italic; }
+      .prose {
+        font-size: .97rem;
+        line-height: 1.85;
+        color: var(--mu2);
+        max-width: 720px;
+      }
+      .prose strong { color: var(--text); }
+      .prose code, .mini-code {
+        color: var(--sky);
+        font-size: .9em;
+        background: rgba(56, 189, 248, .08);
+        border: 1px solid rgba(56, 189, 248, .14);
+        border-radius: 4px;
+        padding: .05rem .25rem;
+      }
+      .reveal {
+        opacity: 0;
+        transform: translateY(20px);
+        transition: opacity .6s ease, transform .6s ease;
+      }
+      .reveal.vis { opacity: 1; transform: translateY(0); }
+      .divider {
+        height: 1px;
+        background: linear-gradient(to right, transparent, var(--bd2), transparent);
+        margin: 0 2rem;
+      }
+
+      .cb {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        overflow: hidden;
+        margin-top: 1.4rem;
+      }
+      .cb-h {
+        display: flex;
+        align-items: center;
+        gap: .5rem;
+        padding: .65rem 1rem;
+        border-bottom: 1px solid var(--bd);
+        background: var(--bg3);
+      }
+      .dot { width: 10px; height: 10px; border-radius: 50%; }
+      .dr { background: #ef4444; }
+      .dy { background: #fbbf24; }
+      .dg { background: #4ade80; }
+      .cb-f {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .68rem;
+        color: var(--muted);
+        margin-left: .35rem;
+      }
+      .cb-badge {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .6rem;
+        padding: .15rem .5rem;
+        border-radius: 3px;
+        margin-left: auto;
+        color: var(--ind);
+        background: rgba(99, 102, 241, .1);
+        border: 1px solid rgba(99, 102, 241, .18);
+      }
+      .cb pre {
+        padding: 1.2rem 1.35rem;
+        font-size: .76rem;
+        line-height: 1.85;
+        overflow-x: auto;
+      }
+      .kw { color: #93c5fd; }
+      .cls { color: #fbbf24; }
+      .fn { color: #86efac; }
+      .str { color: #fca5a5; }
+      .ann { color: #67e8f9; }
+      .cmt { color: var(--muted); font-style: italic; }
+      .num { color: #c084fc; }
+      .ret { color: var(--ind); }
+
+      .concept-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+        gap: 1rem;
+        margin-top: 2.5rem;
+      }
+      .concept-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.25rem;
+        position: relative;
+        transition: transform .25s, border-color .25s;
+        min-height: 165px;
+      }
+      .concept-card:hover { transform: translateY(-3px); border-color: var(--bd2); }
+      .concept-k {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .58rem;
+        color: var(--ind2);
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        margin-bottom: .55rem;
+      }
+      .concept-card h3 {
+        font-size: .98rem;
+        color: var(--acc);
+        margin-bottom: .45rem;
+      }
+      .concept-card p {
+        font-size: .82rem;
+        color: var(--mu2);
+        line-height: 1.65;
+      }
+
+      .pipeline {
+        margin-top: 2.8rem;
+        background: var(--bg2);
+        border: 1px solid var(--bd2);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .pipeline-head {
+        background: var(--bg3);
+        border-bottom: 1px solid var(--bd);
+        padding: .9rem 1.3rem;
+        font-family: "JetBrains Mono", monospace;
+        font-size: .72rem;
+        color: var(--ind);
+        letter-spacing: .1em;
+      }
+      .pipeline-body {
+        padding: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: .8rem;
+      }
+      .pipe-step {
+        min-height: 122px;
+        background: var(--sf);
+        border: 1px solid var(--bd);
+        border-radius: 9px;
+        padding: 1rem;
+        position: relative;
+      }
+      .pipe-step:not(:last-child)::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        right: -.8rem;
+        width: .8rem;
+        height: 2px;
+        background: linear-gradient(to right, var(--bd2), var(--ind2));
+      }
+      .pipe-num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 1px solid var(--bd2);
+        color: var(--ind);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: .65rem;
+        margin-bottom: .65rem;
+      }
+      .pipe-step h4 { font-size: .85rem; color: var(--acc); margin-bottom: .35rem; }
+      .pipe-step p { font-size: .74rem; color: var(--mu2); line-height: 1.5; }
+
+      .two-col {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        margin-top: 2rem;
+      }
+      .mini-list {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        padding: 1.25rem;
+      }
+      .mini-list h4 {
+        color: var(--acc);
+        font-size: .95rem;
+        margin-bottom: .85rem;
+      }
+      .mini-list li {
+        list-style: none;
+        color: var(--mu2);
+        font-size: .82rem;
+        line-height: 1.6;
+        padding: .55rem 0 .55rem 1.1rem;
+        border-top: 1px solid rgba(40, 50, 96, .45);
+        position: relative;
+      }
+      .mini-list li:first-of-type { border-top: 0; }
+      .mini-list li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 1.05rem;
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--ind2);
+      }
+
+      .relation-map {
+        margin-top: 2.5rem;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 1rem;
+      }
+      .rel-card {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      .rel-title {
+        padding: .8rem 1rem;
+        border-bottom: 1px solid var(--bd);
+        background: var(--bg3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: .72rem;
+        color: var(--sky);
+      }
+      .rel-body { padding: 1rem; }
+      .table-box {
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: .8rem;
+      }
+      .table-box b {
+        display: block;
+        background: var(--sf2);
+        color: var(--acc);
+        font-size: .78rem;
+        padding: .48rem .65rem;
+      }
+      .table-box span {
+        display: block;
+        color: var(--mu2);
+        font-family: "JetBrains Mono", monospace;
+        font-size: .64rem;
+        padding: .35rem .65rem;
+        border-top: 1px solid rgba(40, 50, 96, .55);
+      }
+      .rel-note {
+        color: var(--mu2);
+        font-size: .78rem;
+        line-height: 1.55;
+      }
+
+      .method-builder {
+        margin-top: 2.5rem;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: .9rem;
+      }
+      .method-token {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 9px;
+        padding: 1rem;
+        min-height: 116px;
+      }
+      .method-token strong {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--em);
+        font-size: .82rem;
+        display: block;
+        margin-bottom: .55rem;
+      }
+      .method-token p {
+        color: var(--mu2);
+        font-size: .78rem;
+        line-height: 1.55;
+      }
+      .method-result {
+        margin-top: 1rem;
+        padding: 1rem 1.2rem;
+        border-radius: 9px;
+        border: 1px solid rgba(52, 211, 153, .22);
+        background: rgba(52, 211, 153, .06);
+        color: var(--em);
+        font-family: "JetBrains Mono", monospace;
+        font-size: .78rem;
+        overflow-x: auto;
+      }
+
+      .danger-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 1rem;
+        margin-top: 2.5rem;
+      }
+      .danger-card {
+        background: var(--bg2);
+        border: 1px solid rgba(251, 113, 133, .22);
+        border-radius: 10px;
+        padding: 1.2rem;
+      }
+      .danger-card h4 {
+        color: var(--rose);
+        font-size: .92rem;
+        margin-bottom: .45rem;
+      }
+      .danger-card p {
+        color: var(--mu2);
+        font-size: .8rem;
+        line-height: 1.65;
+      }
+      .fix {
+        display: block;
+        margin-top: .75rem;
+        color: var(--em);
+        font-family: "JetBrains Mono", monospace;
+        font-size: .68rem;
+      }
+
+      .ann-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: .85rem;
+        margin-top: 2rem;
+      }
+      .ann-item {
+        background: var(--bg2);
+        border: 1px solid var(--bd);
+        border-radius: 8px;
+        padding: 1.1rem;
+        transition: border-color .2s;
+      }
+      .ann-item:hover { border-color: var(--bd2); }
+      .ann-name {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .72rem;
+        color: var(--sky);
+        display: block;
+        margin-bottom: .4rem;
+      }
+      .ann-item h5 {
+        font-size: .88rem;
+        font-weight: 700;
+        color: var(--acc);
+        margin-bottom: .3rem;
+      }
+      .ann-item p {
+        font-size: .78rem;
+        color: var(--mu2);
+        line-height: 1.6;
+      }
+
+      .finale {
+        background: var(--bg2);
+        border-top: 1px solid var(--bd);
+        padding: 5rem 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .finale::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(to top, rgba(99, 102, 241, .12), transparent 62%),
+          linear-gradient(90deg, transparent, rgba(56, 189, 248, .06), transparent);
+      }
+      .finale h2 {
+        font-family: "Libre Baskerville", serif;
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+        color: var(--acc);
+        margin-bottom: 1rem;
+        position: relative;
+      }
+      .finale h2 span { color: var(--ind); font-style: italic; }
+      .finale p {
+        color: var(--mu2);
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.8;
+        position: relative;
+      }
+      .next-row {
+        position: relative;
+        display: flex;
+        gap: .65rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 1.8rem;
+      }
+      .nc {
+        font-family: "JetBrains Mono", monospace;
+        font-size: .68rem;
+        padding: .45rem .85rem;
+        border: 1px solid var(--bd2);
+        border-radius: 2rem;
+        color: var(--mu2);
+        background: var(--sf);
+        text-decoration: none;
+      }
+      .next-main {
+        color: var(--em);
+        border-color: rgba(52, 211, 153, .32);
+        background: rgba(52, 211, 153, .08);
+      }
+
+      @media (max-width: 900px) {
+        .pipeline-body { grid-template-columns: 1fr; }
+        .pipe-step:not(:last-child)::after {
+          top: auto;
+          right: auto;
+          left: 2rem;
+          bottom: -.8rem;
+          width: 2px;
+          height: .8rem;
+          background: linear-gradient(to bottom, var(--bd2), var(--ind2));
+        }
+        .relation-map, .method-builder { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 680px) {
+        .nav { padding: 0 .75rem; }
+        .nav-brand { margin-right: .75rem; }
+        .nav-link { padding: 0 .7rem; }
+        .section-nav { padding-left: .75rem; }
+        .section-nav .nav-link { padding: 0 .6rem; }
+        .hero { padding-left: 1rem; padding-right: 1rem; }
+        .hero-schema { display: none; }
+        .wrap { padding: 4.5rem 1rem; }
+        .two-col { grid-template-columns: 1fr; }
+        .cb pre { font-size: .7rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="nav main-nav">
+      <div class="nav-brand">SPRING CORE</div>
+      <div class="nav-links">
+        <a class="nav-link done" href="index.html"><span class="nn">&#10003;</span>IoC, Beans &amp; Context</a>
+        <a class="nav-link done" href="spring-02-scopes-lifecycle.html"><span class="nn">&#10003;</span>Scopes &amp; Lifecycle</a>
+        <a class="nav-link done" href="spring-03-aop-proxies.html"><span class="nn">&#10003;</span>AOP &amp; Proxies</a>
+        <a class="nav-link done" href="spring-04-autowired.html"><span class="nn">&#10003;</span>@Autowired</a>
+        <a class="nav-link done" href="spring-05-transactions.html"><span class="nn">&#10003;</span>@Transactional</a>
+        <a class="nav-link done" href="spring-06-springboot-rest.html"><span class="nn">&#10003;</span>Spring Boot &amp; REST</a>
+        <a class="nav-link active" href="#hero"><span class="nn">7</span>Spring Data JPA</a>
+      </div>
+    </nav>
+
+    <nav class="nav section-nav" aria-label="Sections in this lecture">
+      <div class="nav-brand">ON THIS PAGE</div>
+      <div class="nav-links">
+        <a class="nav-link active" href="#hero"><span class="nn">0</span> Intro</a>
+        <a class="nav-link" href="#why"><span class="nn">1</span> Why JPA</a>
+        <a class="nav-link" href="#entity"><span class="nn">2</span> Entity</a>
+        <a class="nav-link" href="#repository"><span class="nn">3</span> Repository</a>
+        <a class="nav-link" href="#queries"><span class="nn">4</span> Queries</a>
+        <a class="nav-link" href="#relations"><span class="nn">5</span> Relations</a>
+        <a class="nav-link" href="#service"><span class="nn">6</span> Service</a>
+        <a class="nav-link" href="#pitfalls"><span class="nn">7</span> Pitfalls</a>
+      </div>
+    </nav>
+
+    <section class="hero" id="hero">
+      <div class="h-bg"></div>
+      <div class="h-grid"></div>
+      <div class="hero-schema" aria-hidden="true">
+        <div class="schema-pill">Controller</div>
+        <div class="schema-pill">Service</div>
+        <div class="schema-pill">Repository</div>
+        <div class="schema-pill">EntityManager</div>
+        <div class="schema-pill">Database</div>
+      </div>
+      <div class="hero-content">
+        <div class="tag">LECTURE 07 / PERSISTENCE LAYER</div>
+        <h1>Spring Data <em>JPA</em></h1>
+        <p class="hero-sub">
+          Learn how Java objects become database rows, how repositories generate SQL for you,
+          and where the sharp edges hide: transactions, relationships, lazy loading, pagination,
+          and the famous N+1 query problem.
+        </p>
+        <div class="hero-pills">
+          <span class="hp">@Entity</span>
+          <span class="hp">JpaRepository</span>
+          <span class="hp">JPQL</span>
+          <span class="hp">@Transactional</span>
+          <span class="hp">Pageable</span>
+        </div>
+      </div>
+      <div class="scroll-c"><span>SCROLL</span></div>
+    </section>
+
+    <main>
+      <section class="wrap" id="why">
+        <div class="sl">01 - The Problem</div>
+        <h2 class="st reveal">JPA is the bridge between <span>objects</span> and <em>tables</em></h2>
+        <p class="prose reveal">
+          Your application thinks in objects: <strong>User</strong>, <strong>Order</strong>, <strong>Product</strong>.
+          Your database stores rows in tables. JPA is the mapping layer that keeps those two worlds aligned.
+          Spring Data JPA then adds a cleaner repository API so most CRUD code disappears.
+        </p>
+
+        <div class="concept-grid reveal">
+          <div class="concept-card">
+            <div class="concept-k">JPA</div>
+            <h3>The specification</h3>
+            <p>A Java standard that defines how entities, relationships, persistence context, and queries should work.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Hibernate</div>
+            <h3>The implementation</h3>
+            <p>The most common JPA provider. It does the real work: dirty checking, SQL generation, caching, lazy loading.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Spring Data JPA</div>
+            <h3>The productivity layer</h3>
+            <p>Repository interfaces, derived queries, pagination, sorting, and integration with Spring transactions.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Database</div>
+            <h3>The source of truth</h3>
+            <p>PostgreSQL, MySQL, H2, MariaDB, Oracle, SQL Server. JPA talks SQL through JDBC under the hood.</p>
+          </div>
+        </div>
+
+        <div class="pipeline reveal">
+          <div class="pipeline-head">REQUEST TO DATABASE FLOW</div>
+          <div class="pipeline-body">
+            <div class="pipe-step">
+              <div class="pipe-num">1</div>
+              <h4>Controller</h4>
+              <p>Receives HTTP, validates DTOs, returns response codes.</p>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">2</div>
+              <h4>Service</h4>
+              <p>Owns business rules and transaction boundaries.</p>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">3</div>
+              <h4>Repository</h4>
+              <p>Exposes persistence operations as Java methods.</p>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">4</div>
+              <h4>Hibernate</h4>
+              <p>Turns entity operations into SQL statements.</p>
+            </div>
+            <div class="pipe-step">
+              <div class="pipe-num">5</div>
+              <h4>Database</h4>
+              <p>Stores tables, constraints, indexes, and rows.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap" id="entity">
+        <div class="sl">02 - Entity Mapping</div>
+        <h2 class="st reveal">An entity is a <span>Java class</span> mapped to a table</h2>
+        <p class="prose reveal">
+          The entity is not just a DTO with annotations. It represents persistent state. JPA tracks changes to managed
+          entities inside the persistence context, then synchronizes those changes with the database during flush or commit.
+        </p>
+
+        <div class="two-col reveal">
+          <div class="cb" style="margin-top:0">
+            <div class="cb-h">
+              <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+              <span class="cb-f">Product.java</span>
+              <span class="cb-badge">ENTITY</span>
+            </div>
+            <pre><span class="ann">@Entity</span>
+<span class="ann">@Table</span>(name = <span class="str">"products"</span>)
+<span class="kw">public class</span> <span class="cls">Product</span> {
+
+    <span class="ann">@Id</span>
+    <span class="ann">@GeneratedValue</span>(strategy = <span class="cls">GenerationType</span>.IDENTITY)
+    <span class="kw">private</span> <span class="cls">Long</span> id;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>, length = <span class="num">120</span>)
+    <span class="kw">private</span> <span class="cls">String</span> name;
+
+    <span class="ann">@Column</span>(nullable = <span class="kw">false</span>, precision = <span class="num">10</span>, scale = <span class="num">2</span>)
+    <span class="kw">private</span> <span class="cls">BigDecimal</span> price;
+
+    <span class="ann">@Enumerated</span>(<span class="cls">EnumType</span>.STRING)
+    <span class="kw">private</span> <span class="cls">ProductStatus</span> status;
+
+    <span class="kw">protected</span> <span class="fn">Product</span>() {
+        <span class="cmt">// JPA needs a no-arg constructor</span>
+    }
+
+    <span class="kw">public</span> <span class="fn">Product</span>(<span class="cls">String</span> name, <span class="cls">BigDecimal</span> price) {
+        <span class="kw">this</span>.name = name;
+        <span class="kw">this</span>.price = price;
+        <span class="kw">this</span>.status = <span class="cls">ProductStatus</span>.ACTIVE;
+    }
+}</pre>
+          </div>
+
+          <div class="mini-list">
+            <h4>Entity rules that save pain</h4>
+            <ul>
+              <li>Use a nullable wrapper type like <span class="mini-code">Long</span> for generated IDs.</li>
+              <li>Prefer <span class="mini-code">BigDecimal</span> for money, never floating point.</li>
+              <li>Use <span class="mini-code">EnumType.STRING</span>, because ordinal values break when enums change.</li>
+              <li>Keep entities focused on persistence and domain behavior, not HTTP request/response shape.</li>
+              <li>Do not expose entities directly from REST controllers. Map them to DTOs.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap" id="repository">
+        <div class="sl">03 - Repositories</div>
+        <h2 class="st reveal">A repository is a <span>typed gateway</span> to persistence</h2>
+        <p class="prose reveal">
+          Extend <code>JpaRepository&lt;Entity, IdType&gt;</code> and Spring generates the implementation at runtime.
+          You get CRUD, batch operations, sorting, pagination, and query method parsing without writing boilerplate SQL.
+        </p>
+
+        <div class="cb reveal">
+          <div class="cb-h">
+            <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+            <span class="cb-f">ProductRepository.java</span>
+            <span class="cb-badge">SPRING DATA</span>
+          </div>
+          <pre><span class="kw">public interface</span> <span class="cls">ProductRepository</span>
+        <span class="kw">extends</span> <span class="cls">JpaRepository</span>&lt;<span class="cls">Product</span>, <span class="cls">Long</span>&gt; {
+
+    <span class="cls">Optional</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">findByNameIgnoreCase</span>(<span class="cls">String</span> name);
+
+    <span class="cls">Page</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">findByStatusOrderByNameAsc</span>(
+        <span class="cls">ProductStatus</span> status,
+        <span class="cls">Pageable</span> pageable
+    );
+
+    <span class="cls">Page</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">findByPriceBetween</span>(
+        <span class="cls">BigDecimal</span> min,
+        <span class="cls">BigDecimal</span> max,
+        <span class="cls">Pageable</span> pageable
+    );
+
+    <span class="kw">boolean</span> <span class="fn">existsByNameIgnoreCase</span>(<span class="cls">String</span> name);
+}</pre>
+        </div>
+
+        <div class="concept-grid reveal">
+          <div class="concept-card">
+            <div class="concept-k">save</div>
+            <h3>Insert or update</h3>
+            <p><span class="mini-code">save(entity)</span> persists new entities and merges detached ones. Use it intentionally.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">findById</div>
+            <h3>Returns Optional</h3>
+            <p>Missing rows are normal. Model that with <span class="mini-code">Optional</span> instead of returning null.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">delete</div>
+            <h3>Removes rows</h3>
+            <p>Deletion can trigger cascades. Know your relationships before deleting aggregate roots.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Pageable</div>
+            <h3>Limit your lists</h3>
+            <p>Return pages for collection endpoints. Unlimited <span class="mini-code">findAll()</span> is a future incident.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap" id="queries">
+        <div class="sl">04 - Query Methods</div>
+        <h2 class="st reveal">Spring can read a method name like a <span>query sentence</span></h2>
+        <p class="prose reveal">
+          Derived queries are great for simple filters. When the method name starts becoming a paragraph,
+          switch to <code>@Query</code>, specifications, Querydsl, or a custom repository method.
+        </p>
+
+        <div class="method-builder reveal">
+          <div class="method-token">
+            <strong>findBy</strong>
+            <p>Start the query. Other prefixes: <span class="mini-code">existsBy</span>, <span class="mini-code">countBy</span>, <span class="mini-code">deleteBy</span>.</p>
+          </div>
+          <div class="method-token">
+            <strong>Status</strong>
+            <p>Match the entity field name exactly. Spring parses Java properties, not database column names.</p>
+          </div>
+          <div class="method-token">
+            <strong>AndPriceLessThan</strong>
+            <p>Add conditions with operators like <span class="mini-code">Between</span>, <span class="mini-code">Containing</span>, <span class="mini-code">In</span>.</p>
+          </div>
+          <div class="method-token">
+            <strong>OrderByNameAsc</strong>
+            <p>Static sorting can be encoded in the method. Dynamic sorting should use <span class="mini-code">Sort</span>.</p>
+          </div>
+        </div>
+        <div class="method-result reveal">
+          List&lt;Product&gt; findByStatusAndPriceLessThanOrderByNameAsc(ProductStatus status, BigDecimal price);
+        </div>
+
+        <div class="two-col reveal">
+          <div class="cb" style="margin-top:0">
+            <div class="cb-h">
+              <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+              <span class="cb-f">JPQL query</span>
+            </div>
+            <pre><span class="ann">@Query</span>(<span class="str">"""
+    select p
+    from Product p
+    where p.status = :status
+      and lower(p.name) like lower(concat('%', :term, '%'))
+    order by p.name asc
+"""</span>)
+<span class="cls">List</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">searchActiveProducts</span>(
+    <span class="ann">@Param</span>(<span class="str">"status"</span>) <span class="cls">ProductStatus</span> status,
+    <span class="ann">@Param</span>(<span class="str">"term"</span>) <span class="cls">String</span> term
+);</pre>
+          </div>
+          <div class="cb" style="margin-top:0">
+            <div class="cb-h">
+              <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+              <span class="cb-f">Native SQL when needed</span>
+            </div>
+            <pre><span class="ann">@Query</span>(
+    value = <span class="str">"""
+        select *
+        from products p
+        where p.created_at &gt; now() - interval '30 days'
+        order by p.created_at desc
+    """</span>,
+    nativeQuery = <span class="kw">true</span>
+)
+<span class="cls">List</span>&lt;<span class="cls">Product</span>&gt; <span class="fn">findRecentlyCreated</span>();</pre>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap" id="relations">
+        <div class="sl">05 - Relationships</div>
+        <h2 class="st reveal">Relationships describe <span>foreign keys</span>, not JSON nesting</h2>
+        <p class="prose reveal">
+          Entity relationships model how tables connect. They are powerful, but they can also create slow queries,
+          accidental deletes, and infinite JSON recursion. Keep ownership clear and map responses with DTOs.
+        </p>
+
+        <div class="relation-map reveal">
+          <div class="rel-card">
+            <div class="rel-title">@ManyToOne</div>
+            <div class="rel-body">
+              <div class="table-box">
+                <b>orders</b>
+                <span>id PK</span>
+                <span>customer_id FK</span>
+              </div>
+              <div class="table-box">
+                <b>customers</b>
+                <span>id PK</span>
+              </div>
+              <p class="rel-note">Many orders belong to one customer. This is usually the owning side with the foreign key.</p>
+            </div>
+          </div>
+          <div class="rel-card">
+            <div class="rel-title">@OneToMany</div>
+            <div class="rel-body">
+              <div class="table-box">
+                <b>customer</b>
+                <span>orders collection</span>
+              </div>
+              <div class="table-box">
+                <b>order</b>
+                <span>customer FK</span>
+              </div>
+              <p class="rel-note">Often the inverse side. Be careful with lazy loading and JSON serialization.</p>
+            </div>
+          </div>
+          <div class="rel-card">
+            <div class="rel-title">@ManyToMany</div>
+            <div class="rel-body">
+              <div class="table-box">
+                <b>students_courses</b>
+                <span>student_id FK</span>
+                <span>course_id FK</span>
+              </div>
+              <p class="rel-note">Uses a join table. In real apps, often replace it with an explicit entity like Enrollment.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="cb reveal">
+          <div class="cb-h">
+            <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+            <span class="cb-f">Order.java - relationship mapping</span>
+          </div>
+          <pre><span class="ann">@Entity</span>
+<span class="ann">@Table</span>(name = <span class="str">"orders"</span>)
+<span class="kw">public class</span> <span class="cls">Order</span> {
+
+    <span class="ann">@Id</span>
+    <span class="ann">@GeneratedValue</span>(strategy = <span class="cls">GenerationType</span>.IDENTITY)
+    <span class="kw">private</span> <span class="cls">Long</span> id;
+
+    <span class="ann">@ManyToOne</span>(fetch = <span class="cls">FetchType</span>.LAZY, optional = <span class="kw">false</span>)
+    <span class="ann">@JoinColumn</span>(name = <span class="str">"customer_id"</span>, nullable = <span class="kw">false</span>)
+    <span class="kw">private</span> <span class="cls">Customer</span> customer;
+
+    <span class="ann">@OneToMany</span>(
+        mappedBy = <span class="str">"order"</span>,
+        cascade = <span class="cls">CascadeType</span>.ALL,
+        orphanRemoval = <span class="kw">true</span>
+    )
+    <span class="kw">private</span> <span class="cls">List</span>&lt;<span class="cls">OrderLine</span>&gt; lines = <span class="kw">new</span> <span class="cls">ArrayList</span>&lt;&gt;();
+}</pre>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap" id="service">
+        <div class="sl">06 - Service Layer</div>
+        <h2 class="st reveal">Transactions belong in the <span>service layer</span></h2>
+        <p class="prose reveal">
+          A transaction is a unit of work. Put <code>@Transactional</code> around service methods that change data
+          or need consistent reads. The repository talks to the database; the service decides what the business operation means.
+        </p>
+
+        <div class="cb reveal">
+          <div class="cb-h">
+            <div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+            <span class="cb-f">ProductService.java</span>
+            <span class="cb-badge">TRANSACTION</span>
+          </div>
+          <pre><span class="ann">@Service</span>
+<span class="kw">public class</span> <span class="cls">ProductService</span> {
+
+    <span class="kw">private final</span> <span class="cls">ProductRepository</span> productRepository;
+
+    <span class="kw">public</span> <span class="fn">ProductService</span>(<span class="cls">ProductRepository</span> productRepository) {
+        <span class="kw">this</span>.productRepository = productRepository;
+    }
+
+    <span class="ann">@Transactional</span>
+    <span class="kw">public</span> <span class="cls">ProductResponse</span> <span class="fn">create</span>(<span class="cls">CreateProductRequest</span> request) {
+        <span class="kw">if</span> (productRepository.<span class="fn">existsByNameIgnoreCase</span>(request.name())) {
+            <span class="kw">throw new</span> <span class="cls">DuplicateProductException</span>(request.name());
+        }
+
+        <span class="cls">Product</span> product = <span class="kw">new</span> <span class="cls">Product</span>(
+            request.name(),
+            request.price()
+        );
+
+        <span class="cls">Product</span> saved = productRepository.<span class="fn">save</span>(product);
+        <span class="kw">return</span> <span class="cls">ProductResponse</span>.<span class="fn">from</span>(saved);
+    }
+
+    <span class="ann">@Transactional</span>(readOnly = <span class="kw">true</span>)
+    <span class="kw">public</span> <span class="cls">Page</span>&lt;<span class="cls">ProductResponse</span>&gt; <span class="fn">findActive</span>(<span class="cls">Pageable</span> pageable) {
+        <span class="kw">return</span> productRepository
+            .<span class="fn">findByStatusOrderByNameAsc</span>(<span class="cls">ProductStatus</span>.ACTIVE, pageable)
+            .<span class="fn">map</span>(<span class="cls">ProductResponse</span>::<span class="fn">from</span>);
+    }
+}</pre>
+        </div>
+
+        <div class="concept-grid reveal">
+          <div class="concept-card">
+            <div class="concept-k">Managed</div>
+            <h3>Inside persistence context</h3>
+            <p>JPA tracks changes. If you change a field in a transaction, Hibernate can update it automatically.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Detached</div>
+            <h3>Outside persistence context</h3>
+            <p>The object still has data, but JPA is no longer tracking it. Changes are not flushed automatically.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Flush</div>
+            <h3>SQL synchronization</h3>
+            <p>Hibernate sends pending SQL before commit or before queries that require database consistency.</p>
+          </div>
+          <div class="concept-card">
+            <div class="concept-k">Commit</div>
+            <h3>Database confirmation</h3>
+            <p>The transaction succeeds and changes become durable. On rollback, the database is restored.</p>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap" id="pitfalls">
+        <div class="sl">07 - Pitfalls</div>
+        <h2 class="st reveal">The bugs are usually in the <span>invisible SQL</span></h2>
+        <p class="prose reveal">
+          Spring Data JPA feels magical when it works. Senior developers keep the generated SQL in mind.
+          Turn on SQL logging while learning, inspect slow endpoints, and treat relationships with respect.
+        </p>
+
+        <div class="danger-grid reveal">
+          <div class="danger-card">
+            <h4>N+1 queries</h4>
+            <p>You load 1 list, then each row triggers another query for its related entity. Looks harmless in Java, slow in production.</p>
+            <span class="fix">Fix: fetch join, @EntityGraph, DTO projection</span>
+          </div>
+          <div class="danger-card">
+            <h4>LazyInitializationException</h4>
+            <p>A lazy relationship is accessed after the transaction closes. Hibernate cannot fetch it anymore.</p>
+            <span class="fix">Fix: fetch what you need in the service</span>
+          </div>
+          <div class="danger-card">
+            <h4>Returning entities from controllers</h4>
+            <p>Entities can expose internal fields, trigger lazy loading, or serialize recursive relationships forever.</p>
+            <span class="fix">Fix: response DTOs</span>
+          </div>
+          <div class="danger-card">
+            <h4>Accidental cascade deletes</h4>
+            <p>Cascade settings can delete more data than expected if ownership is modeled casually.</p>
+            <span class="fix">Fix: cascade only inside aggregates</span>
+          </div>
+          <div class="danger-card">
+            <h4>Using findAll for APIs</h4>
+            <p>It works with 20 rows. It hurts with 2 million rows. Collection endpoints should be paginated.</p>
+            <span class="fix">Fix: Pageable + indexes</span>
+          </div>
+          <div class="danger-card">
+            <h4>Schema drift</h4>
+            <p>Letting Hibernate auto-update production schema can create surprising migrations.</p>
+            <span class="fix">Fix: Flyway or Liquibase migrations</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="divider"></div>
+
+      <section class="wrap">
+        <div class="sl">08 - Quick Reference</div>
+        <h2 class="st reveal">Annotations <span>cheat sheet</span></h2>
+
+        <div class="ann-grid reveal">
+          <div class="ann-item">
+            <span class="ann-name">@Entity</span>
+            <h5>Persistent class</h5>
+            <p>Marks a class as a JPA entity that maps to a database table.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@Table</span>
+            <h5>Table metadata</h5>
+            <p>Customizes table name, indexes, unique constraints, and schema.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@Id</span>
+            <h5>Primary key</h5>
+            <p>Marks the field that uniquely identifies each entity row.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@GeneratedValue</span>
+            <h5>ID generation</h5>
+            <p>Chooses how IDs are generated: identity, sequence, table, or auto.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@Column</span>
+            <h5>Column rules</h5>
+            <p>Controls name, nullability, length, precision, uniqueness, and more.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@Enumerated</span>
+            <h5>Enum storage</h5>
+            <p>Use STRING to store enum names instead of fragile numeric positions.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@ManyToOne</span>
+            <h5>Many rows to one</h5>
+            <p>Common owning side for a foreign key relationship.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@OneToMany</span>
+            <h5>One row to many</h5>
+            <p>Often inverse side. Combine with mappedBy to avoid extra join tables.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@JoinColumn</span>
+            <h5>Foreign key column</h5>
+            <p>Defines the column used to join one entity to another.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@Transactional</span>
+            <h5>Unit of work</h5>
+            <p>Defines the transactional boundary around a service operation.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@Query</span>
+            <h5>Custom query</h5>
+            <p>Write JPQL or native SQL when derived method names are not enough.</p>
+          </div>
+          <div class="ann-item">
+            <span class="ann-name">@EntityGraph</span>
+            <h5>Fetch plan</h5>
+            <p>Load selected relationships eagerly for a specific repository method.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <div class="finale">
+      <h2 class="reveal">Persistence is where Spring becomes <span>real</span></h2>
+      <p class="reveal">
+        REST gives your app a public surface. Spring Data JPA gives it memory.
+        Once you understand entities, repositories, transactions, and generated SQL,
+        you can build APIs that survive real data, real users, and real scale.
+      </p>
+      <div class="next-row reveal">
+        <a class="nc" href="spring-06-springboot-rest.html">Back: Lecture 06 REST</a>
+        <span class="nc next-main">Next: Lecture 08 Spring Security &amp; JWT</span>
+        <span class="nc">Then: Testing with @DataJpaTest</span>
+      </div>
+    </div>
+
+    <script>
+      const revealObserver = new IntersectionObserver(
+        entries => entries.forEach(entry => {
+          if (entry.isIntersecting) entry.target.classList.add("vis");
+        }),
+        { threshold: 0.08 }
+      );
+      document.querySelectorAll(".reveal").forEach(el => revealObserver.observe(el));
+
+      const sections = [...document.querySelectorAll("section[id]")];
+      const links = [...document.querySelectorAll(".section-nav .nav-link")];
+      const navObserver = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            links.forEach(link => link.classList.toggle(
+              "active",
+              link.getAttribute("href") === "#" + entry.target.id
+            ));
+          });
+        },
+        { rootMargin: "-40% 0px -55% 0px", threshold: 0 }
+      );
+      sections.forEach(section => navObserver.observe(section));
+    </script>
+  </body>
+</html>

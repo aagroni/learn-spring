@@ -1,0 +1,1187 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spring Boot & REST APIs — Lecture 06</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg:    #07080d;
+        --bg2:   #0b0d16;
+        --bg3:   #0f1120;
+        --sf:    #131629;
+        --sf2:   #192038;
+        --bd:    #1e2540;
+        --bd2:   #283260;
+        --text:  #dde4ff;
+        --muted: #4a5580;
+        --mu2:   #7d8cc4;
+        --ind:   #818cf8;
+        --ind2:  #6366f1;
+        --sky:   #38bdf8;
+        --sky2:  #0ea5e9;
+        --rose:  #fb7185;
+        --em:    #34d399;
+        --warn:  #fbbf24;
+        --acc:   #eef0ff;
+        --vio:   #a78bfa;
+        --or:    #fb923c;
+      }
+
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html { scroll-behavior: smooth; }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Space Grotesk', sans-serif;
+        overflow-x: hidden;
+      }
+      pre, code { font-family: 'JetBrains Mono', monospace; }
+
+      /* noise */
+      body::after {
+        content: '';
+        position: fixed; inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 300 300' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none; z-index: 9999;
+      }
+
+      /* ── NAV (exact match to lectures 04/05) ── */
+      .nav {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+        height: 50px;
+        background: rgba(7,8,13,0.93);
+        border-bottom: 1px solid var(--bd);
+        backdrop-filter: blur(16px);
+        display: flex; align-items: center;
+        padding: 0 1.5rem; gap: 0;
+      }
+      .nav-brand {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .72rem; letter-spacing: .18em;
+        color: var(--ind); margin-right: 1.5rem; white-space: nowrap;
+      }
+      .nav-links { display: flex; gap: 0; flex: 1; overflow-x: auto; }
+      .nav-link {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .6rem; letter-spacing: .06em;
+        padding: 0 .9rem; height: 50px;
+        display: flex; align-items: center; gap: .4rem;
+        color: var(--muted); text-decoration: none;
+        border-right: 1px solid var(--bd); white-space: nowrap;
+        transition: color .2s, background .2s; cursor: pointer;
+      }
+      .nav-link:first-child { border-left: 1px solid var(--bd); }
+      .nav-link:hover { color: var(--text); background: rgba(129,140,248,.04); }
+      .nav-link.done { color: var(--mu2); }
+      .nav-link.done .nn { background: rgba(52,211,153,.12); border-color: rgba(52,211,153,.3); color: var(--em); }
+      .nav-link.active { color: var(--ind); background: rgba(129,140,248,.06); }
+      .nav-link.active .nn { background: rgba(129,140,248,.15); border-color: var(--ind2); color: var(--ind); }
+      .nn {
+        width: 16px; height: 16px; border-radius: 50%;
+        background: var(--sf); border: 1px solid var(--bd2);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .55rem; flex-shrink: 0;
+      }
+
+      /* ── HERO ── */
+      .hero {
+        min-height: 100vh;
+        display: flex; flex-direction: column;
+        justify-content: center; align-items: center;
+        text-align: center;
+        padding: 8rem 2rem 5rem;
+        position: relative; overflow: hidden;
+      }
+      .h-bg {
+        position: absolute; inset: 0;
+        background:
+          radial-gradient(ellipse 80% 55% at 50% -5%, rgba(99,102,241,.22) 0%, transparent 65%),
+          radial-gradient(ellipse 35% 35% at 15% 85%, rgba(56,189,248,.1) 0%, transparent 60%),
+          radial-gradient(ellipse 30% 30% at 85% 75%, rgba(251,146,60,.08) 0%, transparent 60%);
+      }
+      /* animated dots grid */
+      .h-dots {
+        position: absolute; inset: 0;
+        background-image: radial-gradient(rgba(129,140,248,.12) 1px, transparent 1px);
+        background-size: 32px 32px;
+        animation: dotPulse 6s ease-in-out infinite;
+      }
+      @keyframes dotPulse { 0%,100%{opacity:.5} 50%{opacity:1} }
+
+      .tag {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: .66rem; letter-spacing: .22em; color: var(--ind2);
+        border: 1px solid var(--bd2); padding: .3rem 1rem;
+        border-radius: 2rem; margin-bottom: 1.8rem;
+        background: rgba(99,102,241,.07);
+        display: inline-flex; align-items: center; gap: .55rem;
+        position: relative; animation: fd .7s ease both;
+      }
+      .tag::before {
+        content: ''; width: 6px; height: 6px; border-radius: 50%;
+        background: var(--ind2); animation: bl 2s infinite;
+      }
+      @keyframes bl { 0%,100%{opacity:1;box-shadow:0 0 6px var(--ind2)} 50%{opacity:.3} }
+      .hero h1 {
+        font-family: 'Libre Baskerville', serif;
+        font-size: clamp(2.8rem,7vw,6.5rem);
+        line-height: 1.05; color: var(--acc);
+        animation: fd .85s ease .1s both; position: relative;
+      }
+      .hero h1 em { font-style: italic; color: var(--ind); display: block; }
+      .hero-sub {
+        font-size: 1rem; line-height: 1.8; color: var(--mu2);
+        max-width: 540px; margin: 1.5rem auto 0;
+        animation: fd 1s ease .2s both;
+      }
+      .hero-pills {
+        display: flex; gap: .55rem; justify-content: center;
+        flex-wrap: wrap; margin-top: 1.75rem;
+        animation: fd 1s ease .32s both;
+      }
+      .hp {
+        font-family: 'JetBrains Mono', monospace; font-size: .63rem;
+        padding: .3rem .8rem; border-radius: 2rem;
+        border: 1px solid var(--bd2); color: var(--mu2); background: var(--sf);
+      }
+      .scroll-c {
+        position: absolute; bottom: 2.5rem; left: 50%; transform: translateX(-50%);
+        display: flex; flex-direction: column; align-items: center; gap: .4rem;
+        animation: fd 1.2s ease .55s both;
+      }
+      .scroll-c span { font-family: 'JetBrains Mono', monospace; font-size: .58rem; letter-spacing: .2em; color: var(--muted); }
+      .scroll-c::after { content: ''; width: 1.5px; height: 40px; background: linear-gradient(to bottom,var(--ind2),transparent); animation: sb 2s ease-in-out infinite; }
+      @keyframes sb { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(.5)} }
+      @keyframes fd { from{opacity:0;transform:translateY(-13px)} to{opacity:1;transform:translateY(0)} }
+
+      /* ── LAYOUT ── */
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 6rem 2rem; position: relative; }
+      .sl {
+        font-family: 'JetBrains Mono', monospace; font-size: .64rem;
+        letter-spacing: .26em; color: var(--ind2); text-transform: uppercase;
+        margin-bottom: .9rem; display: flex; align-items: center; gap: .75rem;
+      }
+      .sl::after { content: ''; flex: 1; height: 1px; background: linear-gradient(to right,var(--bd2),transparent); max-width: 180px; }
+      .st {
+        font-family: 'Libre Baskerville', serif;
+        font-size: clamp(1.8rem,3.5vw,2.8rem); color: var(--acc);
+        line-height: 1.15; margin-bottom: 1.2rem;
+      }
+      .st span { color: var(--ind); }
+      .st em { color: var(--sky); font-style: italic; }
+      .prose { font-size: .97rem; line-height: 1.85; color: var(--mu2); max-width: 680px; }
+      .prose strong { color: var(--text); }
+      .reveal { opacity: 0; transform: translateY(20px); transition: opacity .6s ease, transform .6s ease; }
+      .reveal.vis { opacity: 1; transform: translateY(0); }
+      .divider { height: 1px; background: linear-gradient(to right,transparent,var(--bd2),transparent); margin: 0 2rem; }
+
+      /* ── CODE BLOCKS ── */
+      .cb { background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px; overflow: hidden; margin-top: 1.4rem; }
+      .cb-h { display: flex; align-items: center; gap: .5rem; padding: .65rem 1rem; border-bottom: 1px solid var(--bd); background: var(--bg3); }
+      .dot { width: 10px; height: 10px; border-radius: 50%; }
+      .dr{background:#ef4444} .dy{background:#fbbf24} .dg{background:#4ade80}
+      .cb-f { font-family: 'JetBrains Mono', monospace; font-size: .68rem; color: var(--muted); margin-left: .35rem; }
+      .cb-badge { font-family: 'JetBrains Mono', monospace; font-size: .6rem; padding: .15rem .5rem; border-radius: 3px; margin-left: auto; }
+      .cb pre { padding: 1.2rem 1.35rem; font-size: .76rem; line-height: 1.85; overflow-x: auto; }
+      .kw{color:#93c5fd} .cls{color:#fbbf24} .fn{color:#86efac}
+      .str{color:#fca5a5} .ann{color:#67e8f9} .cmt{color:var(--muted);font-style:italic}
+      .num{color:#c084fc} .ret{color:var(--ind)}
+
+      /* ── BEFORE / AFTER COMPARISON ── */
+      .ba-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 2.5rem; }
+      @media(max-width:680px){ .ba-grid{grid-template-columns:1fr} }
+      .ba-card { background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px; overflow: hidden; }
+      .ba-head { padding: .75rem 1.1rem; border-bottom: 1px solid var(--bd); font-family: 'JetBrains Mono', monospace; font-size: .7rem; letter-spacing: .08em; }
+      .ba-bad  { border-color: rgba(251,113,133,.25); }
+      .ba-bad  .ba-head { background: rgba(251,113,133,.07); color: var(--rose); }
+      .ba-good { border-color: rgba(52,211,153,.22); }
+      .ba-good .ba-head { background: rgba(52,211,153,.07); color: var(--em); }
+
+      /* ── AUTO-CONFIG VISUAL ── */
+      .ac-visual {
+        margin-top: 2.5rem;
+        background: var(--bg2); border: 1px solid var(--bd2); border-radius: 12px; overflow: hidden;
+      }
+      .ac-head { background: var(--bg3); border-bottom: 1px solid var(--bd); padding: .9rem 1.4rem; font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--ind); letter-spacing: .1em; }
+      .ac-body { padding: 1.75rem; display: grid; grid-template-columns: 1fr auto 1fr; gap: 1.5rem; align-items: center; }
+      @media(max-width:650px){ .ac-body{grid-template-columns:1fr;text-align:center} }
+      .ac-col-title { font-family: 'JetBrains Mono', monospace; font-size: .62rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; }
+      .ac-item {
+        padding: .6rem .9rem; background: var(--sf); border: 1px solid var(--bd); border-radius: 7px;
+        margin-bottom: .5rem; font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--mu2);
+        display: flex; align-items: center; gap: .6rem; transition: border-color .2s;
+      }
+      .ac-item:hover { border-color: var(--bd2); }
+      .ac-item .ic { font-size: .9rem; }
+      .ac-arrow { display: flex; flex-direction: column; align-items: center; gap: .4rem; }
+      .ac-arrow-line { width: 50px; height: 2px; background: linear-gradient(to right,var(--bd2),var(--ind2)); position: relative; }
+      .ac-arrow-line::after { content:'▶'; position:absolute; right:-8px; top:50%; transform:translateY(-50%); color:var(--ind2); font-size:.75rem; }
+      .ac-arrow-label { font-family: 'JetBrains Mono', monospace; font-size: .58rem; color: var(--muted); letter-spacing: .1em; }
+      .ac-result-item {
+        padding: .65rem .9rem; background: rgba(99,102,241,.07); border: 1px solid rgba(99,102,241,.2); border-radius: 7px;
+        margin-bottom: .5rem; font-family: 'JetBrains Mono', monospace; font-size: .7rem; color: var(--ind);
+        display: flex; align-items: center; gap: .6rem;
+      }
+
+      /* ── HTTP METHOD CARDS ── */
+      .http-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 1rem; margin-top: 2.5rem; }
+      .http-card {
+        background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px;
+        overflow: hidden; transition: transform .25s, box-shadow .25s; cursor: default;
+      }
+      .http-card:hover { transform: translateY(-4px); box-shadow: 0 14px 36px rgba(0,0,0,.5); }
+      .http-badge {
+        display: block; text-align: center; padding: .6rem;
+        font-family: 'JetBrains Mono', monospace; font-size: .85rem; font-weight: 700;
+        letter-spacing: .1em; border-bottom: 1px solid var(--bd);
+      }
+      .http-body { padding: 1rem; }
+      .http-card h4 { font-size: .88rem; font-weight: 700; color: var(--acc); margin-bottom: .35rem; }
+      .http-card p { font-size: .78rem; color: var(--mu2); line-height: 1.6; }
+      .http-safe { font-family: 'JetBrains Mono', monospace; font-size: .6rem; margin-top: .6rem; display: inline-block; padding: .15rem .45rem; border-radius: 3px; border: 1px solid; }
+
+      /* ── REQUEST FLOW ── */
+      .flow-diagram { margin-top: 3rem; position: relative; }
+      .flow-step {
+        display: grid; grid-template-columns: 56px 2px 1fr;
+        gap: 0 1.4rem; align-items: start; padding-bottom: 2rem;
+        opacity: 0; transform: translateX(-18px);
+        transition: opacity .5s ease, transform .5s ease;
+      }
+      .flow-step.vis { opacity: 1; transform: translateX(0); }
+      .flow-num {
+        width: 56px; height: 56px;
+        background: var(--sf); border: 2px solid var(--bd2); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-family: 'Libre Baskerville', serif; font-size: 1.3rem; color: var(--ind);
+        flex-shrink: 0; z-index: 1; transition: border-color .3s, box-shadow .3s;
+      }
+      .flow-step:hover .flow-num { border-color: var(--ind); box-shadow: 0 0 18px rgba(129,140,248,.25); }
+      .flow-vline {
+        background: var(--bd); width: 2px; height: calc(100% - 28px);
+        margin-top: 56px; position: relative;
+      }
+      .flow-vline::before {
+        content: ''; position: absolute; top:0; left:0; width:100%; height:0%;
+        background: linear-gradient(to bottom, var(--ind2), transparent);
+        transition: height 1s ease;
+      }
+      .flow-step.vis .flow-vline::before { height: 100%; }
+      .flow-step:last-child .flow-vline { display: none; }
+      .flow-content { padding-top: .85rem; }
+      .flow-content h3 { font-size: 1rem; font-weight: 700; color: var(--acc); margin-bottom: .35rem; }
+      .flow-content p { font-size: .86rem; color: var(--mu2); line-height: 1.65; max-width: 520px; }
+      .flow-tag {
+        display: inline-block; margin-top: .65rem;
+        font-family: 'JetBrains Mono', monospace; font-size: .66rem;
+        padding: .2rem .65rem; border-radius: 4px;
+        background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.22); color: var(--ind);
+      }
+
+      /* ── STATUS CODES GRID ── */
+      .status-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(210px,1fr)); gap: 1rem; margin-top: 2.5rem; }
+      .status-card {
+        background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px;
+        padding: 1.25rem; position: relative; overflow: hidden;
+        transition: transform .25s; cursor: default;
+      }
+      .status-card:hover { transform: translateY(-3px); }
+      .status-card::before { content:''; position:absolute; left:0;top:0;bottom:0; width:3px; background: var(--s-color,var(--ind)); }
+      .status-code { font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 700; color: var(--s-color,var(--ind)); margin-bottom: .3rem; line-height: 1; }
+      .status-name { font-size: .82rem; font-weight: 700; color: var(--acc); margin-bottom: .35rem; }
+      .status-card p { font-size: .78rem; color: var(--mu2); line-height: 1.6; }
+      .status-tags { display: flex; gap: .3rem; flex-wrap: wrap; margin-top: .5rem; }
+      .status-tag { font-family: 'JetBrains Mono', monospace; font-size: .58rem; padding: .1rem .35rem; border-radius: 3px; background: var(--sf); border: 1px solid var(--bd); color: var(--mu2); }
+
+      /* ── VALIDATION / ERROR ── */
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top: 2rem; }
+      @media(max-width:680px){ .two-col{grid-template-columns:1fr} }
+
+      /* ── REST DESIGN CARDS ── */
+      .design-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(250px,1fr)); gap: 1.1rem; margin-top: 2.5rem; }
+      .design-card {
+        background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px;
+        padding: 1.4rem; transition: transform .25s, border-color .25s;
+      }
+      .design-card:hover { transform: translateY(-3px); border-color: var(--bd2); }
+      .design-card::after {
+        content: ''; display: block; height: 2px; margin-top: 1rem;
+        background: linear-gradient(to right, var(--ind2), var(--sky2));
+        transform: scaleX(0); transform-origin: left; transition: transform .4s;
+        border-radius: 2px;
+      }
+      .design-card:hover::after { transform: scaleX(1); }
+      .design-num { font-family: 'JetBrains Mono', monospace; font-size: .6rem; letter-spacing: .2em; color: var(--muted); margin-bottom: .5rem; text-transform: uppercase; }
+      .design-card h4 { font-size: .95rem; font-weight: 700; color: var(--acc); margin-bottom: .4rem; }
+      .design-card p { font-size: .82rem; color: var(--mu2); line-height: 1.65; }
+      .design-card code { font-family: 'JetBrains Mono', monospace; font-size: .82em; color: var(--sky); }
+
+      /* ── ANNOTATIONS CHEAT SHEET ── */
+      .ann-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(200px,1fr)); gap: .85rem; margin-top: 2rem; }
+      .ann-item {
+        background: var(--bg2); border: 1px solid var(--bd); border-radius: 8px;
+        padding: 1.1rem; transition: border-color .2s;
+      }
+      .ann-item:hover { border-color: var(--bd2); }
+      .ann-name { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--sky); display: block; margin-bottom: .4rem; }
+      .ann-item h5 { font-size: .88rem; font-weight: 700; color: var(--acc); margin-bottom: .3rem; }
+      .ann-item p { font-size: .78rem; color: var(--mu2); line-height: 1.6; }
+
+      /* ── MENTAL MODELS ── */
+      .mm-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1.1rem; margin-top: 2.5rem; }
+      .mm { background: var(--bg2); border: 1px solid var(--bd); border-radius: 10px; padding: 1.4rem; transition: transform .25s; }
+      .mm:hover { transform: translateY(-3px); }
+      .mm-em { font-size: 2rem; display: block; margin-bottom: .75rem; }
+      .mm-con { font-family: 'JetBrains Mono', monospace; font-size: .6rem; letter-spacing: .18em; text-transform: uppercase; color: var(--ind2); margin-bottom: .3rem; }
+      .mm-an { font-family: 'Libre Baskerville', serif; font-size: 1.1rem; color: var(--acc); margin-bottom: .45rem; line-height: 1.3; }
+      .mm p { font-size: .83rem; color: var(--mu2); line-height: 1.65; }
+
+      /* ── FINALE ── */
+      .finale { background: var(--bg2); border-top: 1px solid var(--bd); padding: 5rem 2rem; text-align: center; position: relative; overflow: hidden; }
+      .finale::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 60% 50% at 50% 100%,rgba(99,102,241,.12),transparent); }
+      .finale h2 { font-family: 'Libre Baskerville', serif; font-size: clamp(1.8rem,4vw,2.8rem); color: var(--acc); margin-bottom: 1rem; position: relative; }
+      .finale p { color: var(--mu2); max-width: 520px; margin: 0 auto; line-height: 1.8; font-size: .95rem; position: relative; }
+      .next-row { display: flex; gap: .7rem; justify-content: center; flex-wrap: wrap; margin-top: 2rem; position: relative; }
+      .nc { background: var(--sf); border: 1px solid var(--bd2); color: var(--text); padding: .5rem 1rem; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: .67rem; letter-spacing: .05em; cursor: default; transition: all .25s; text-decoration: none; display: inline-block; }
+      .nc:hover { border-color: var(--ind); color: var(--ind); background: rgba(99,102,241,.07); }
+      .nc.next-main { border-color: var(--ind2); color: var(--ind); background: rgba(99,102,241,.08); }
+
+      ::-webkit-scrollbar { width: 5px; height: 5px; }
+      ::-webkit-scrollbar-track { background: var(--bg); }
+      ::-webkit-scrollbar-thumb { background: var(--sf2); border-radius: 3px; }
+    </style>
+  </head>
+  <body>
+
+    <!-- ══ NAV ══ -->
+    <nav class="nav">
+      <div class="nav-brand">SPRING CORE</div>
+      <div class="nav-links">
+        <a class="nav-link done" href="index.html"><span class="nn">&#10003;</span>IoC, Beans &amp; Context</a>
+        <a class="nav-link done" href="spring-02-scopes-lifecycle.html"><span class="nn">&#10003;</span>Scopes &amp; Lifecycle</a>
+        <a class="nav-link done" href="spring-03-aop-proxies.html"><span class="nn">&#10003;</span>AOP &amp; Proxies</a>
+        <a class="nav-link done" href="spring-04-autowired.html"><span class="nn">&#10003;</span>@Autowired</a>
+        <a class="nav-link done" href="spring-05-transactions.html"><span class="nn">&#10003;</span>@Transactional</a>
+        <a class="nav-link active" href="spring-06-springboot-rest.html"><span class="nn">6</span>Spring Boot &amp; REST</a>
+        <a class="nav-link" href="spring-07-data-jpa.html"><span class="nn">7</span>Spring Data JPA</a>
+      </div>
+    </nav>
+
+    <!-- ══ HERO ══ -->
+    <div class="hero">
+      <div class="h-bg"></div>
+      <div class="h-dots"></div>
+
+      <div class="tag">● SPRING FRAMEWORK — LECTURE 06</div>
+      <h1>Spring Boot<em>&amp; REST APIs</em></h1>
+      <p class="hero-sub">
+        Five lectures of pure Spring fundamentals — now they all click together.
+        Spring Boot removes the wiring. REST gives your app a voice.
+        This is where you finally build real things.
+      </p>
+      <div class="hero-pills">
+        <span class="hp">@SpringBootApplication</span>
+        <span class="hp">Auto-configuration</span>
+        <span class="hp">@RestController</span>
+        <span class="hp">@GetMapping</span>
+        <span class="hp">@PostMapping</span>
+        <span class="hp">@RequestBody</span>
+        <span class="hp">@PathVariable</span>
+        <span class="hp">ResponseEntity</span>
+        <span class="hp">HTTP Status Codes</span>
+        <span class="hp">@Valid</span>
+      </div>
+      <div class="scroll-c"><span>SCROLL</span></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         01 — WHAT IS SPRING BOOT
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">01 — Spring Boot</div>
+      <h2 class="st reveal">Spring Boot is <span>not</span> a different framework</h2>
+      <p class="prose reveal">
+        This is the most important thing to understand. Spring Boot <strong>is Spring</strong> —
+        everything from Lectures 01–05 still applies, every concept still runs underneath.
+        Spring Boot simply eliminates the configuration you had to write manually:
+        it reads your classpath, makes intelligent assumptions, and <strong>auto-configures beans for you</strong>.
+        That's the entire "magic."
+      </p>
+
+      <div class="ba-grid reveal">
+        <div class="ba-card ba-bad">
+          <div class="ba-head">❌ Plain Spring — you configure everything</div>
+          <div class="cb" style="margin:0;border:none;border-radius:0">
+            <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+              <span class="cb-f">AppConfig.java — just to start a web app</span>
+            </div>
+            <pre><span class="cmt">// Register the DispatcherServlet</span>
+<span class="kw">public class</span> <span class="cls">AppInitializer</span>
+    <span class="kw">extends</span> <span class="cls">AbstractAnnotationConfigDispatcherServletInitializer</span> {
+  <span class="ann">@Override</span>
+  <span class="kw">protected</span> <span class="cls">Class</span>[] <span class="fn">getRootConfigClasses</span>() {
+    <span class="kw">return new</span> <span class="cls">Class</span>[]{<span class="cls">RootConfig</span>.class};
+  }
+  <span class="ann">@Override</span>
+  <span class="kw">protected</span> <span class="cls">String</span>[] <span class="fn">getServletMappings</span>() {
+    <span class="kw">return new</span> <span class="cls">String</span>[]{<span class="str">"/"</span>};
+  }
+}
+<span class="cmt">// + WebMvcConfig, Jackson, DataSource,
+// TransactionManager, JPA, ViewResolver...
+// 200+ lines before writing a single endpoint</span></pre>
+          </div>
+        </div>
+
+        <div class="ba-card ba-good">
+          <div class="ba-head">✅ Spring Boot — everything auto-configured</div>
+          <div class="cb" style="margin:0;border:none;border-radius:0">
+            <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+              <span class="cb-f">Application.java — the entire bootstrap</span>
+            </div>
+            <pre><span class="ann">@SpringBootApplication</span>  <span class="cmt">// ← that's it</span>
+<span class="kw">public class</span> <span class="cls">Application</span> {
+
+  <span class="kw">public static void</span> <span class="fn">main</span>(<span class="cls">String</span>[] args) {
+    <span class="cls">SpringApplication</span>.<span class="fn">run</span>(
+      <span class="cls">Application</span>.class, args
+    );
+  }
+}
+<span class="cmt">// Spring Boot auto-configures:
+// ✅ Embedded Tomcat on port 8080
+// ✅ DispatcherServlet
+// ✅ Jackson (JSON serialization)
+// ✅ DataSource (if DB dep on classpath)
+// ✅ TransactionManager
+// ✅ JPA EntityManagerFactory
+// ... all from reading your classpath</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- @SpringBootApplication explained -->
+      <div class="cb reveal">
+        <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+          <span class="cb-f">@SpringBootApplication = 3 annotations in one</span>
+        </div>
+        <pre><span class="cmt">// @SpringBootApplication is a shortcut for:</span>
+
+<span class="ann">@SpringBootConfiguration</span>   <span class="cmt">// = @Configuration — this class can define @Bean methods</span>
+<span class="ann">@EnableAutoConfiguration</span>   <span class="cmt">// scans classpath → auto-creates beans intelligently</span>
+<span class="ann">@ComponentScan</span>             <span class="cmt">// scans this package + subpackages for @Component classes</span>
+
+<span class="cmt">// So from Lectures 01-02, you already understand all three.
+// Spring Boot just bundles them and adds the auto-config layer.</span></pre>
+      </div>
+
+      <!-- auto-config visual -->
+      <div class="ac-visual reveal">
+        <div class="ac-head">// How @EnableAutoConfiguration works — what Spring Boot sees on your classpath</div>
+        <div class="ac-body">
+          <div>
+            <div class="ac-col-title">📦 Your pom.xml / build.gradle</div>
+            <div class="ac-item"><span class="ic">🌐</span>spring-boot-starter-web</div>
+            <div class="ac-item"><span class="ic">🗄</span>spring-boot-starter-data-jpa</div>
+            <div class="ac-item"><span class="ic">🐘</span>postgresql driver</div>
+            <div class="ac-item"><span class="ic">🔒</span>spring-boot-starter-security</div>
+          </div>
+          <div class="ac-arrow">
+            <div class="ac-arrow-line"></div>
+            <div class="ac-arrow-label">auto-configures</div>
+          </div>
+          <div>
+            <div class="ac-col-title">🫘 Beans Spring Boot creates for you</div>
+            <div class="ac-result-item"><span>🌐</span>DispatcherServlet + Embedded Tomcat</div>
+            <div class="ac-result-item"><span>🔄</span>Jackson ObjectMapper (JSON ↔ Object)</div>
+            <div class="ac-result-item"><span>🗄</span>DataSource + EntityManagerFactory</div>
+            <div class="ac-result-item"><span>💳</span>JpaTransactionManager</div>
+            <div class="ac-result-item"><span>🔒</span>Spring Security filter chain</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- application.properties -->
+      <div class="cb reveal">
+        <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+          <span class="cb-f">application.properties — override any auto-config default</span>
+        </div>
+        <pre><span class="cmt"># Server</span>
+server.port=<span class="num">8080</span>
+server.servlet.context-path=<span class="str">/api</span>
+
+<span class="cmt"># Database</span>
+spring.datasource.url=<span class="str">jdbc:postgresql://localhost:5432/mydb</span>
+spring.datasource.username=<span class="str">agron</span>
+spring.datasource.password=<span class="str">secret</span>
+
+<span class="cmt"># JPA / Hibernate</span>
+spring.jpa.hibernate.ddl-auto=<span class="str">validate</span>
+spring.jpa.show-sql=<span class="kw">true</span>
+
+<span class="cmt"># Logging</span>
+logging.level.com.myapp=<span class="str">DEBUG</span></pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         02 — REST FUNDAMENTALS
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">02 — REST Fundamentals</div>
+      <h2 class="st reveal">What <span>REST</span> actually means</h2>
+      <p class="prose reveal">
+        REST (Representational State Transfer) is an architectural style for APIs over HTTP.
+        It has one core rule: <strong>everything is a resource</strong> with a URL,
+        and you interact with it using standard HTTP verbs.
+        No SOAP envelopes, no RPC calls — just URLs, verbs, and JSON.
+      </p>
+
+      <!-- HTTP verbs -->
+      <div class="http-grid reveal">
+        <div class="http-card">
+          <span class="http-badge" style="background:rgba(52,211,153,.1);color:#34d399;border-bottom:1px solid rgba(52,211,153,.15)">GET</span>
+          <div class="http-body">
+            <h4>Read a resource</h4>
+            <p>Fetch one or a list. Never modifies data. Safe &amp; idempotent — call it 100 times, same result.</p>
+            <span class="http-safe" style="color:var(--em);border-color:rgba(52,211,153,.25);background:rgba(52,211,153,.07)">safe + idempotent</span>
+          </div>
+        </div>
+        <div class="http-card">
+          <span class="http-badge" style="background:rgba(99,102,241,.1);color:var(--ind);border-bottom:1px solid rgba(99,102,241,.15)">POST</span>
+          <div class="http-body">
+            <h4>Create a resource</h4>
+            <p>Creates a new resource. Calling it twice creates two resources. Returns 201 Created + Location header.</p>
+            <span class="http-safe" style="color:var(--muted);border-color:var(--bd);background:var(--sf)">neither</span>
+          </div>
+        </div>
+        <div class="http-card">
+          <span class="http-badge" style="background:rgba(251,191,36,.08);color:var(--warn);border-bottom:1px solid rgba(251,191,36,.15)">PUT</span>
+          <div class="http-body">
+            <h4>Replace a resource</h4>
+            <p>Full replacement — send the entire object. Idempotent: calling it twice produces the same result.</p>
+            <span class="http-safe" style="color:var(--warn);border-color:rgba(251,191,36,.25);background:rgba(251,191,36,.07)">idempotent</span>
+          </div>
+        </div>
+        <div class="http-card">
+          <span class="http-badge" style="background:rgba(167,139,250,.08);color:var(--vio);border-bottom:1px solid rgba(167,139,250,.15)">PATCH</span>
+          <div class="http-body">
+            <h4>Partially update</h4>
+            <p>Send only the fields you want to change. More efficient than PUT for large objects.</p>
+            <span class="http-safe" style="color:var(--muted);border-color:var(--bd);background:var(--sf)">not guaranteed</span>
+          </div>
+        </div>
+        <div class="http-card">
+          <span class="http-badge" style="background:rgba(251,113,133,.08);color:var(--rose);border-bottom:1px solid rgba(251,113,133,.15)">DELETE</span>
+          <div class="http-body">
+            <h4>Remove a resource</h4>
+            <p>Deletes the resource. Returns 204 No Content. Idempotent: deleting an already-deleted item is still OK.</p>
+            <span class="http-safe" style="color:var(--rose);border-color:rgba(251,113,133,.25);background:rgba(251,113,133,.07)">idempotent</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- URL design -->
+      <div class="cb reveal" style="margin-top:2rem">
+        <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+          <span class="cb-f">REST URL design — nouns not verbs, resources not actions</span>
+        </div>
+        <pre><span class="cmt">// ❌ RPC-style (wrong)</span>
+GET  /getUsers
+POST /createUser
+POST /deleteUser?id=1
+
+<span class="cmt">// ✅ REST-style (correct) — resources + HTTP verbs do the talking</span>
+GET    /users          <span class="cmt">// get all users</span>
+GET    /users/{id}     <span class="cmt">// get one user</span>
+POST   /users          <span class="cmt">// create a user (body has the data)</span>
+PUT    /users/{id}     <span class="cmt">// replace user completely</span>
+PATCH  /users/{id}     <span class="cmt">// update user partially</span>
+DELETE /users/{id}     <span class="cmt">// delete a user</span>
+
+<span class="cmt">// Nested resources</span>
+GET    /users/{id}/orders       <span class="cmt">// all orders of a user</span>
+GET    /users/{id}/orders/{oid} <span class="cmt">// specific order of a user</span></pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         03 — BUILDING THE CONTROLLER
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">03 — Building Controllers</div>
+      <h2 class="st reveal">Your first <span>REST Controller</span></h2>
+      <p class="prose reveal">
+        A <code style="font-family:'JetBrains Mono',monospace;color:var(--sky);font-size:.9em">@RestController</code>
+        is just a Spring bean (Lecture 01) with two things: it handles HTTP requests mapped to its methods,
+        and it automatically serializes return values to JSON.
+        Everything else — validation, transactions, security — comes from the layers you already know.
+      </p>
+
+      <div class="cb reveal">
+        <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+          <span class="cb-f">UserController.java — a complete REST controller</span>
+        </div>
+        <pre><span class="ann">@RestController</span>              <span class="cmt">// = @Controller + @ResponseBody</span>
+<span class="ann">@RequestMapping</span>(<span class="str">"/users"</span>)     <span class="cmt">// base URL for all methods below</span>
+<span class="kw">public class</span> <span class="cls">UserController</span> {
+
+    <span class="kw">private final</span> <span class="cls">UserService</span> userService;  <span class="cmt">// ← injected (Lecture 04)</span>
+
+    <span class="kw">public</span> <span class="fn">UserController</span>(<span class="cls">UserService</span> userService) {
+        <span class="kw">this</span>.userService = userService;
+    }
+
+    <span class="cmt">// ── GET all ──</span>
+    <span class="ann">@GetMapping</span>
+    <span class="kw">public</span> <span class="cls">List</span>&lt;<span class="cls">UserDto</span>&gt; <span class="fn">getAll</span>() {
+        <span class="kw">return</span> userService.<span class="fn">findAll</span>();  <span class="cmt">// Jackson serializes to JSON array</span>
+    }
+
+    <span class="cmt">// ── GET one ──</span>
+    <span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">UserDto</span>&gt; <span class="fn">getById</span>(<span class="ann">@PathVariable</span> <span class="kw">long</span> id) {
+        <span class="kw">return</span> userService.<span class="fn">findById</span>(id)
+            .map(<span class="cls">ResponseEntity</span>::ok)           <span class="cmt">// 200 OK</span>
+            .orElse(<span class="cls">ResponseEntity</span>.<span class="fn">notFound</span>().<span class="fn">build</span>());  <span class="cmt">// 404</span>
+    }
+
+    <span class="cmt">// ── POST create ──</span>
+    <span class="ann">@PostMapping</span>
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">UserDto</span>&gt; <span class="fn">create</span>(
+            <span class="ann">@RequestBody</span> <span class="ann">@Valid</span> <span class="cls">CreateUserRequest</span> req) {
+        <span class="cls">UserDto</span> created = userService.<span class="fn">create</span>(req);
+        <span class="cls">URI</span> location = <span class="cls">URI</span>.<span class="fn">create</span>(<span class="str">"/users/"</span> + created.<span class="fn">getId</span>());
+        <span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">created</span>(location).<span class="fn">body</span>(created);  <span class="cmt">// 201</span>
+    }
+
+    <span class="cmt">// ── PUT full update ──</span>
+    <span class="ann">@PutMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">UserDto</span>&gt; <span class="fn">update</span>(
+            <span class="ann">@PathVariable</span> <span class="kw">long</span> id,
+            <span class="ann">@RequestBody</span> <span class="ann">@Valid</span> <span class="cls">UpdateUserRequest</span> req) {
+        <span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">ok</span>(userService.<span class="fn">update</span>(id, req));
+    }
+
+    <span class="cmt">// ── DELETE ──</span>
+    <span class="ann">@DeleteMapping</span>(<span class="str">"/{id}"</span>)
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">Void</span>&gt; <span class="fn">delete</span>(<span class="ann">@PathVariable</span> <span class="kw">long</span> id) {
+        userService.<span class="fn">delete</span>(id);
+        <span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">noContent</span>().<span class="fn">build</span>();  <span class="cmt">// 204</span>
+    }
+}</pre>
+      </div>
+
+      <!-- request params -->
+      <div class="cb reveal">
+        <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+          <span class="cb-f">Getting data from the request — all the ways</span>
+        </div>
+        <pre><span class="cmt">// ① @PathVariable — from the URL path  /users/42</span>
+<span class="ann">@GetMapping</span>(<span class="str">"/{id}"</span>)
+<span class="kw">public</span> <span class="cls">User</span> <span class="fn">get</span>(<span class="ann">@PathVariable</span> <span class="kw">long</span> id) { ... }
+
+<span class="cmt">// ② @RequestParam — from query string  /users?page=2&size=10</span>
+<span class="ann">@GetMapping</span>
+<span class="kw">public</span> <span class="cls">Page</span>&lt;<span class="cls">User</span>&gt; <span class="fn">list</span>(
+    <span class="ann">@RequestParam</span>(defaultValue = <span class="str">"0"</span>) <span class="kw">int</span> page,
+    <span class="ann">@RequestParam</span>(defaultValue = <span class="str">"20"</span>) <span class="kw">int</span> size) { ... }
+
+<span class="cmt">// ③ @RequestBody — JSON body deserialized to object</span>
+<span class="ann">@PostMapping</span>
+<span class="kw">public</span> <span class="cls">User</span> <span class="fn">create</span>(<span class="ann">@RequestBody</span> <span class="cls">CreateUserRequest</span> req) { ... }
+
+<span class="cmt">// ④ @RequestHeader — HTTP header value</span>
+<span class="kw">public</span> <span class="cls">User</span> <span class="fn">get</span>(<span class="ann">@RequestHeader</span>(<span class="str">"X-Correlation-Id"</span>) <span class="cls">String</span> correlationId) { ... }
+
+<span class="cmt">// ⑤ @CookieValue — value from a cookie</span>
+<span class="kw">public</span> <span class="cls">String</span> <span class="fn">get</span>(<span class="ann">@CookieValue</span>(<span class="str">"sessionId"</span>) <span class="cls">String</span> sessionId) { ... }</pre>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         04 — REQUEST FLOW
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">04 — Request Journey</div>
+      <h2 class="st reveal">What happens when a <span>request arrives</span></h2>
+      <p class="prose reveal">
+        Every HTTP request travels through a precise pipeline before your controller method is called.
+        Understanding this is essential for debugging and for adding cross-cutting concerns like auth, logging, or CORS.
+      </p>
+
+      <div class="flow-diagram" id="flowDiagram">
+        <div class="flow-step">
+          <div class="flow-num">1</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>HTTP Request hits Embedded Tomcat</h3>
+            <p>Spring Boot starts an embedded Tomcat (or Netty/Jetty). It listens on port 8080 and receives the raw HTTP request from the client.</p>
+            <span class="flow-tag">Tomcat / Servlet Container</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">2</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>Servlet Filters run (Security, CORS, Logging)</h3>
+            <p>Before Spring even sees the request, Servlet Filters intercept it. Spring Security lives here — authentication happens before any controller code runs.</p>
+            <span class="flow-tag">Filter Chain (OncePerRequestFilter)</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">3</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>DispatcherServlet receives the request</h3>
+            <p>Spring's front controller — a single servlet that routes <em>every</em> request. Auto-configured by Spring Boot. Acts as the entry point into the Spring MVC layer.</p>
+            <span class="flow-tag">DispatcherServlet (Spring's Front Controller)</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">4</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>HandlerMapping finds the right controller method</h3>
+            <p>Spring scans all <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@RequestMapping</code> annotations and finds the method whose URL and HTTP method match. <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">GET /users/42</code> → <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">getById(42)</code>.</p>
+            <span class="flow-tag">RequestMappingHandlerMapping</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">5</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>HandlerInterceptors run (pre-handle)</h3>
+            <p>Spring's equivalent of AOP for the web layer. Custom interceptors (auth checks, request logging, rate limiting) run here before the controller method is called.</p>
+            <span class="flow-tag">HandlerInterceptor.preHandle()</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">6</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>Argument resolvers deserialize the request</h3>
+            <p>Spring resolves <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@PathVariable</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@RequestParam</code>, and calls Jackson to deserialize the JSON body into your <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@RequestBody</code> object.</p>
+            <span class="flow-tag">HandlerMethodArgumentResolver + Jackson</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">7</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>@Valid triggers Bean Validation</h3>
+            <p>If <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@Valid</code> is present on a parameter, Hibernate Validator runs all constraint annotations (<code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@NotNull</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@Email</code>, etc.). On failure: 400 Bad Request automatically.</p>
+            <span class="flow-tag">Hibernate Validator / JSR-380</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">8</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>Your controller method executes</h3>
+            <p>Finally, your actual code runs. The AOP proxy (Lecture 03) wraps it — so <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@Transactional</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@PreAuthorize</code>, and any custom aspects fire around your method.</p>
+            <span class="flow-tag">Your @RestController method</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">9</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>Jackson serializes the return value to JSON</h3>
+            <p><code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@RestController</code> includes <code style="font-family:'JetBrains Mono',monospace;font-size:.85em;color:var(--sky)">@ResponseBody</code> — your returned object is automatically serialized to JSON by Jackson and written into the HTTP response body.</p>
+            <span class="flow-tag">HttpMessageConverter + Jackson</span>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num">10</div>
+          <div class="flow-vline"></div>
+          <div class="flow-content">
+            <h3>Response sent back to client</h3>
+            <p>HTTP status code, headers, and JSON body travel back through the filter chain and Tomcat to the client. Round trip complete.</p>
+            <span class="flow-tag">HTTP Response → Client</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         05 — RESPONSE ENTITY & STATUS CODES
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">05 — ResponseEntity &amp; Status Codes</div>
+      <h2 class="st reveal"><span>ResponseEntity</span> — full control of the response</h2>
+      <p class="prose reveal">
+        Returning a plain object from a controller always gives a 200 OK.
+        <code style="font-family:'JetBrains Mono',monospace;color:var(--sky);font-size:.9em">ResponseEntity&lt;T&gt;</code>
+        gives you full control: choose the status code, set headers, and optionally include a body.
+        Use it whenever the status code carries semantic meaning — which is almost always.
+      </p>
+
+      <div class="cb reveal">
+        <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+          <span class="cb-f">ResponseEntity — patterns you'll use every day</span>
+        </div>
+        <pre><span class="cmt">// 200 OK with body</span>
+<span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">ok</span>(user);
+
+<span class="cmt">// 201 Created with Location header (best practice for POST)</span>
+<span class="cls">URI</span> location = <span class="cls">MvcUriComponentsBuilder</span>.<span class="fn">fromMethodName</span>(
+    <span class="cls">UserController</span>.class, <span class="str">"getById"</span>, created.<span class="fn">getId</span>()).<span class="fn">build</span>().<span class="fn">toUri</span>();
+<span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">created</span>(location).<span class="fn">body</span>(created);
+
+<span class="cmt">// 204 No Content (successful DELETE or update with no body)</span>
+<span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">noContent</span>().<span class="fn">build</span>();
+
+<span class="cmt">// 404 Not Found</span>
+<span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">notFound</span>().<span class="fn">build</span>();
+
+<span class="cmt">// 400 Bad Request with error body</span>
+<span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">badRequest</span>().<span class="fn">body</span>(<span class="kw">new</span> <span class="cls">ErrorResponse</span>(<span class="str">"Invalid data"</span>));
+
+<span class="cmt">// Custom status + custom header</span>
+<span class="kw">return</span> <span class="cls">ResponseEntity</span>
+    .<span class="fn">status</span>(<span class="cls">HttpStatus</span>.ACCEPTED)        <span class="cmt">// 202</span>
+    .<span class="fn">header</span>(<span class="str">"X-Job-Id"</span>, jobId)
+    .<span class="fn">body</span>(result);</pre>
+      </div>
+
+      <!-- status code reference -->
+      <h3 class="reveal" style="font-family:'Libre Baskerville',serif;font-size:1.4rem;color:var(--acc);margin:2.5rem 0 0">HTTP Status Codes you must know</h3>
+      <div class="status-grid reveal">
+        <div class="status-card" style="--s-color:var(--em)">
+          <div class="status-code">2xx</div>
+          <div class="status-name">Success</div>
+          <p>The request was received and processed.</p>
+          <div class="status-tags">
+            <span class="status-tag">200 OK</span>
+            <span class="status-tag">201 Created</span>
+            <span class="status-tag">204 No Content</span>
+            <span class="status-tag">202 Accepted</span>
+          </div>
+        </div>
+        <div class="status-card" style="--s-color:var(--sky)">
+          <div class="status-code">3xx</div>
+          <div class="status-name">Redirect</div>
+          <p>The resource has moved. Client should follow the Location header.</p>
+          <div class="status-tags">
+            <span class="status-tag">301 Moved Permanently</span>
+            <span class="status-tag">302 Found</span>
+            <span class="status-tag">304 Not Modified</span>
+          </div>
+        </div>
+        <div class="status-card" style="--s-color:var(--warn)">
+          <div class="status-code">4xx</div>
+          <div class="status-name">Client Error</div>
+          <p>The client sent something wrong. Fix it on the client side.</p>
+          <div class="status-tags">
+            <span class="status-tag">400 Bad Request</span>
+            <span class="status-tag">401 Unauthorized</span>
+            <span class="status-tag">403 Forbidden</span>
+            <span class="status-tag">404 Not Found</span>
+            <span class="status-tag">409 Conflict</span>
+            <span class="status-tag">422 Unprocessable</span>
+          </div>
+        </div>
+        <div class="status-card" style="--s-color:var(--rose)">
+          <div class="status-code">5xx</div>
+          <div class="status-name">Server Error</div>
+          <p>The server failed. The client's request was fine — something broke on your end.</p>
+          <div class="status-tags">
+            <span class="status-tag">500 Internal Server Error</span>
+            <span class="status-tag">502 Bad Gateway</span>
+            <span class="status-tag">503 Service Unavailable</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         06 — VALIDATION & GLOBAL ERROR HANDLING
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">06 — Validation &amp; Error Handling</div>
+      <h2 class="st reveal">Never trust <span>incoming data</span></h2>
+      <p class="prose reveal">
+        Always validate what comes in. Spring integrates with Bean Validation (JSR-380) through Hibernate Validator.
+        Add <code style="font-family:'JetBrains Mono',monospace;color:var(--sky);font-size:.9em">@Valid</code> to your
+        <code style="font-family:'JetBrains Mono',monospace;color:var(--sky);font-size:.9em">@RequestBody</code> and annotate your DTO fields —
+        Spring handles the rest. For global error shaping, use <code style="font-family:'JetBrains Mono',monospace;color:var(--sky);font-size:.9em">@ControllerAdvice</code>.
+      </p>
+
+      <div class="two-col reveal">
+        <div class="cb" style="margin-top:0">
+          <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+            <span class="cb-f">CreateUserRequest.java — validated DTO</span>
+          </div>
+          <pre><span class="kw">public class</span> <span class="cls">CreateUserRequest</span> {
+
+    <span class="ann">@NotBlank</span>(message = <span class="str">"Name required"</span>)
+    <span class="ann">@Size</span>(min=<span class="num">2</span>, max=<span class="num">100</span>)
+    <span class="kw">private</span> <span class="cls">String</span> name;
+
+    <span class="ann">@Email</span>(message = <span class="str">"Invalid email"</span>)
+    <span class="ann">@NotBlank</span>
+    <span class="kw">private</span> <span class="cls">String</span> email;
+
+    <span class="ann">@Min</span>(<span class="num">18</span>)
+    <span class="ann">@Max</span>(<span class="num">120</span>)
+    <span class="kw">private int</span> age;
+
+    <span class="ann">@NotNull</span>
+    <span class="ann">@Future</span>
+    <span class="kw">private</span> <span class="cls">LocalDate</span> startDate;
+
+    <span class="cmt">// getters / setters</span>
+}</pre>
+        </div>
+
+        <div class="cb" style="margin-top:0">
+          <div class="cb-h"><div class="dot dr"></div><div class="dot dy"></div><div class="dot dg"></div>
+            <span class="cb-f">GlobalExceptionHandler.java — @ControllerAdvice</span>
+          </div>
+          <pre><span class="ann">@RestControllerAdvice</span>  <span class="cmt">// catches exceptions globally</span>
+<span class="kw">public class</span> <span class="cls">GlobalExceptionHandler</span> {
+
+    <span class="cmt">// Validation failure → 400</span>
+    <span class="ann">@ExceptionHandler</span>(<span class="cls">MethodArgumentNotValidException</span>.class)
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">ErrorResponse</span>&gt; <span class="fn">handleValidation</span>(
+            <span class="cls">MethodArgumentNotValidException</span> ex) {
+        <span class="cls">List</span>&lt;<span class="cls">String</span>&gt; errors = ex.<span class="fn">getBindingResult</span>()
+            .<span class="fn">getFieldErrors</span>()
+            .stream()
+            .map(<span class="cls">FieldError</span>::<span class="fn">getDefaultMessage</span>)
+            .<span class="fn">toList</span>();
+        <span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">badRequest</span>()
+            .<span class="fn">body</span>(<span class="kw">new</span> <span class="cls">ErrorResponse</span>(<span class="str">"Validation failed"</span>, errors));
+    }
+
+    <span class="cmt">// Entity not found → 404</span>
+    <span class="ann">@ExceptionHandler</span>(<span class="cls">EntityNotFoundException</span>.class)
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">ErrorResponse</span>&gt; <span class="fn">handleNotFound</span>(
+            <span class="cls">EntityNotFoundException</span> ex) {
+        <span class="kw">return</span> <span class="cls">ResponseEntity</span>.<span class="fn">notFound</span>().<span class="fn">build</span>();
+    }
+
+    <span class="cmt">// Anything else → 500</span>
+    <span class="ann">@ExceptionHandler</span>(<span class="cls">Exception</span>.class)
+    <span class="kw">public</span> <span class="cls">ResponseEntity</span>&lt;<span class="cls">ErrorResponse</span>&gt; <span class="fn">handleGeneric</span>(
+            <span class="cls">Exception</span> ex) {
+        <span class="kw">return</span> <span class="cls">ResponseEntity</span>
+            .<span class="fn">internalServerError</span>()
+            .<span class="fn">body</span>(<span class="kw">new</span> <span class="cls">ErrorResponse</span>(<span class="str">"Something went wrong"</span>));
+    }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         07 — REST DESIGN BEST PRACTICES
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">07 — Best Practices</div>
+      <h2 class="st reveal">REST API design <span>rules</span> that matter</h2>
+      <p class="prose reveal">These aren't opinions — they're the patterns that make APIs predictable, maintainable, and easy to consume. Junior devs who apply these stand out immediately.</p>
+
+      <div class="design-grid reveal">
+        <div class="design-card">
+          <div class="design-num">Rule 01</div>
+          <h4>Use DTOs, never expose entities</h4>
+          <p>Never return your JPA <code>@Entity</code> directly from a controller. Use a DTO. Entities have lazy collections, bidirectional relationships, and hibernate proxies that cause infinite recursion or expose internal schema.</p>
+        </div>
+        <div class="design-card">
+          <div class="design-num">Rule 02</div>
+          <h4>Version your API from day one</h4>
+          <p>Start with <code>/v1/users</code>. When you need breaking changes, release <code>/v2/users</code> without killing existing clients. Impossible to add later without breaking things.</p>
+        </div>
+        <div class="design-card">
+          <div class="design-num">Rule 03</div>
+          <h4>Always return consistent error shapes</h4>
+          <p>Every error response should have the same structure: <code>timestamp</code>, <code>status</code>, <code>message</code>, <code>errors[]</code>. Clients need to be able to parse errors without guessing the schema.</p>
+        </div>
+        <div class="design-card">
+          <div class="design-num">Rule 04</div>
+          <h4>Separate controller from service logic</h4>
+          <p>Controllers only handle HTTP: parse request, call service, shape response. Business logic lives in <code>@Service</code>. This makes services testable without HTTP.</p>
+        </div>
+        <div class="design-card">
+          <div class="design-num">Rule 05</div>
+          <h4>Use @Transactional in the service, not controller</h4>
+          <p>You learned this in Lecture 05. Service layer owns transactions. Controllers own HTTP. Never blur this line — <code>@Transactional</code> on a controller method is a design smell.</p>
+        </div>
+        <div class="design-card">
+          <div class="design-num">Rule 06</div>
+          <h4>Paginate list endpoints from the start</h4>
+          <p>Never return unlimited lists. Use Spring Data's <code>Pageable</code> from day one. Adding pagination to an existing <code>GET /users</code> is a breaking change if clients aren't expecting it.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         08 — ANNOTATION CHEAT SHEET
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">08 — Quick Reference</div>
+      <h2 class="st reveal">Annotations <span>cheat sheet</span></h2>
+
+      <div class="ann-grid reveal">
+        <div class="ann-item">
+          <span class="ann-name">@SpringBootApplication</span>
+          <h5>Bootstrap the app</h5>
+          <p>@Configuration + @ComponentScan + @EnableAutoConfiguration in one.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@RestController</span>
+          <h5>JSON REST controller</h5>
+          <p>@Controller + @ResponseBody. All methods serialize return values to JSON.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@RequestMapping</span>
+          <h5>Base URL prefix</h5>
+          <p>Set on the class to define the URL prefix shared by all methods inside.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@GetMapping / @PostMapping</span>
+          <h5>Method-level routing</h5>
+          <p>Shortcut for @RequestMapping(method=GET/POST). One annotation per verb.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@PathVariable</span>
+          <h5>URL segment → param</h5>
+          <p>Binds a {placeholder} from the URL path to a method parameter.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@RequestParam</span>
+          <h5>Query string → param</h5>
+          <p>Binds ?key=value from the query string. Supports defaultValue.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@RequestBody</span>
+          <h5>JSON body → object</h5>
+          <p>Jackson deserializes the HTTP request body into the annotated parameter.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@Valid</span>
+          <h5>Trigger Bean Validation</h5>
+          <p>Apply next to @RequestBody to run all JSR-380 constraint annotations.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@RestControllerAdvice</span>
+          <h5>Global exception handler</h5>
+          <p>Catches exceptions across all controllers. Shape your error responses here.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@ExceptionHandler</span>
+          <h5>Handle specific exception</h5>
+          <p>Inside @ControllerAdvice — maps a specific exception type to a response.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@CrossOrigin</span>
+          <h5>Allow CORS</h5>
+          <p>Permits cross-origin requests. Set origins and methods. Configure globally in WebMvcConfigurer.</p>
+        </div>
+        <div class="ann-item">
+          <span class="ann-name">@Value</span>
+          <h5>Inject config property</h5>
+          <p>Reads a value from application.properties into a field. Supports defaults.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- ══════════════════════════════════════════════
+         09 — MENTAL MODELS
+    ══════════════════════════════════════════════ -->
+    <div class="wrap">
+      <div class="sl">09 — Mental Models</div>
+      <h2 class="st reveal">Analogies that <span>make it stick</span></h2>
+      <div class="mm-grid reveal">
+        <div class="mm">
+          <span class="mm-em">🤖</span>
+          <div class="mm-con">Spring Boot</div>
+          <div class="mm-an">A pre-configured laptop out of the box</div>
+          <p>Plain Spring is like buying all the parts and assembling the PC yourself. Spring Boot is like buying a MacBook — everything configured, drivers installed, ready to use. You can still open it up and customize.</p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">📬</span>
+          <div class="mm-con">REST API</div>
+          <div class="mm-an">A post office with standard forms</div>
+          <p>Each URL is a PO box (resource). Each HTTP method is a standard form (GET=enquiry, POST=submit, DELETE=withdrawal request). Everyone uses the same forms — no custom formats.</p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🚦</span>
+          <div class="mm-con">DispatcherServlet</div>
+          <div class="mm-an">Airport traffic control</div>
+          <p>Every flight (request) goes through the same control tower first. It doesn't handle the flight itself — it looks at the destination and routes it to the right runway (controller).</p>
+        </div>
+        <div class="mm">
+          <span class="mm-em">🧱</span>
+          <div class="mm-con">@ControllerAdvice</div>
+          <div class="mm-an">The building's emergency response team</div>
+          <p>Every floor (controller) can have a fire, but there's one dedicated team that handles all emergencies the same way. No need for every floor to set up their own fire protocol.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ FINALE ══ -->
+    <div class="finale">
+      <h2 class="reveal">
+        Your Spring foundation is <span>complete</span>
+      </h2>
+      <p class="reveal">
+        Six lectures. IoC → Beans → Scopes → AOP → DI → Transactions → Spring Boot → REST.
+        You now understand not just how to write Spring Boot code,
+        but <em>why</em> every piece works the way it does.
+        The remaining stack — JPA, Security, Testing — is the same foundation, deeper.
+      </p>
+      <div class="next-row reveal">
+        <a class="nc next-main" href="spring-07-data-jpa.html">→ Lecture 07: Spring Data JPA</a>
+        <span class="nc">→ Lecture 08: Spring Security &amp; JWT</span>
+        <span class="nc">→ Lecture 09: Testing (MockMvc, @WebMvcTest)</span>
+        <span class="nc">→ Lecture 10: Docker &amp; Deployment</span>
+      </div>
+    </div>
+
+    <script>
+      // reveal
+      const obs = new IntersectionObserver(
+        e => e.forEach(x => { if (x.isIntersecting) x.target.classList.add('vis'); }),
+        { threshold: 0.08 }
+      );
+      document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+      // flow steps
+      const flowObs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            document.querySelectorAll('.flow-step').forEach((s, i) =>
+              setTimeout(() => s.classList.add('vis'), i * 110));
+            flowObs.disconnect();
+          }
+        });
+      }, { threshold: 0.05 });
+      const fd = document.getElementById('flowDiagram');
+      if (fd) flowObs.observe(fd);
+    </script>
+  </body>
+</html>
